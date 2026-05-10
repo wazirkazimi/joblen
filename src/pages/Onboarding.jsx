@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, CheckCircle, ChevronLeft, UploadCloud, SkipForward, FileText, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import BACKEND_URL from '../lib/config';
 import Step1Goals   from './onboarding/Step1Goals';
 import Step2Profile from './onboarding/Step2Profile';
 import Step3Clubs   from './onboarding/Step3Clubs';
@@ -88,7 +89,7 @@ export default function Onboarding() {
     const fd = new FormData();
     fd.append('resume', file);
     try {
-      const res = await fetch('http://localhost:5000/api/parse-resume', { method:'POST', body:fd });
+      const res = await fetch(`${BACKEND_URL}/api/parse-resume`, { method:'POST', body:fd });
       if (res.ok) {
         const data = await res.json();
         setFormData(prev => ({

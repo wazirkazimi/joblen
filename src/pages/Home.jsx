@@ -4,6 +4,7 @@ import { ShieldAlert, CheckCircle, Search, Mail, MessageSquare, AlertTriangle, F
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import BACKEND_URL from '../lib/config';
 
 function calcCompleteness(p) {
   if (!p) return 0;
@@ -73,7 +74,7 @@ const Home = () => {
     if (!jdText.trim()) return;
     setIsAnalyzing(true); setResult(null); setError(null);
     try {
-      const res = await fetch('http://localhost:5000/api/analyze', {
+      const res = await fetch(`${BACKEND_URL}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobDescription: jdText, userProfile: profile || {} }),

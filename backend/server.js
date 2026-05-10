@@ -8,7 +8,15 @@ const pdfParse = require('pdf-parse');
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://joblen.vercel.app',   // ← update this to your actual Vercel domain
+    /\.vercel\.app$/,              // covers all preview deployments too
+  ],
+  credentials: true,
+}));
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
