@@ -12,9 +12,9 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:5174',
-    'https://joblen.vercel.app',       // your Vercel domain (update if different)
-    'https://joblen-git-main-wazirkazimi.vercel.app', // preview URL
-    /\.vercel\.app$/,              // covers all preview deployments too
+    'https://joblen.vercel.app',
+    'https://joblen-8k6xicphz-wazirkazimis-projects.vercel.app',
+    /\.vercel\.app$/,   // covers ALL vercel preview URLs automatically
   ],
   credentials: true,
 }));
