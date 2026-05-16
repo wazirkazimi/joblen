@@ -210,12 +210,13 @@ Return ONLY this JSON (no markdown, no extra text):
 
     const completion = await groq.chat.completions.create({
       messages: [
-        { role: 'system', content: 'You are an API returning only valid JSON. Be specific, accurate, and honest. Never use placeholder names or generic advice.' },
+        { role: 'system', content: 'You are a JSON API. Return only valid JSON, no markdown. Be specific and accurate.' },
         { role: 'user', content: prompt }
       ],
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant',   // 10x faster than 70b, same JSON quality
       response_format: { type: 'json_object' },
-      temperature: 0.4, // lower = more accurate, less hallucination
+      temperature: 0.3,
+      max_tokens: 2500,                  // cap output — prevents runaway generation
     });
 
     const raw = completion.choices[0]?.message?.content || '{}';
