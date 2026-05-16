@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, CheckCircle, Search, Mail, MessageSquare, AlertTriangle, FileText, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Users } from 'lucide-react';
+import { ShieldAlert, CheckCircle, Search, Mail, MessageSquare, AlertTriangle, FileText, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Users, ThumbsUp, ThumbsDown, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -60,19 +60,28 @@ const SkillTag = ({ label, type }) => {
 };
 
 const Home = () => {
-  const [jdText, setJdText]       = useState('');
+  const [jdText, setJdText]           = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult]       = useState(null);
-  const [error, setError]         = useState(null);
+  const [result, setResult]           = useState(null);
+  const [error, setError]             = useState(null);
   const [openSection, setOpenSection] = useState('fit');
+  const [analysisId, setAnalysisId]   = useState(null);
+  const [feedback, setFeedback]       = useState(null);   // null | 'yes' | 'no'
+  const [feedbackReasons, setFeedbackReasons] = useState([]);
+  const [feedbackSaved, setFeedbackSaved]     = useState(false);
   const navigate = useNavigate();
   const { profile, user } = useAuth();
 
   const completeness = calcCompleteness(profile);
 
+  const YES_REASONS = ['Matches my skills', 'Dream company 🎯', 'Good salary', 'Remote/flexible', 'Strong career growth', 'Interesting domain'];
+  const NO_REASONS  = ['Skills gap too big', 'Salary too low', 'Wrong location', 'Culture mismatch', 'Role not a fit', 'Too senior/junior'];
+
+  const toggleReason = (r) => setFeedbackReasons(prev => prev.includes(r) ? prev.filter(x=>x!==r) : [...prev, r]);
+
   const handleAnalyze = async () => {
     if (!jdText.trim()) return;
-    setIsAnalyzing(true); setResult(null); setError(null);
+    setIsAnalyzing(true); setResult(null); setError(null); setFeedback(null); setFeedbackReasons([]); setFeedbackSaved(false);
     try {
       const res = await fetch(`${BACKEND_URL}/api/analyze`, {
         method: 'POST',
@@ -82,10 +91,24 @@ const Home = () => {
       if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.details || e.error || 'Failed'); }
       const data = await res.json();
       setResult(data);
-      if (user) await supabase.from('analyses').insert({ user_id: user.id, job_description: jdText, result: data });
+      if (user) {
+        const { data: saved } = await supabase.from('analyses')
+          .insert({ user_id: user.id, job_description: jdText, result: data })
+          .select('id').single();
+        if (saved?.id) setAnalysisId(saved.id);
+      }
     } catch (e) {
       setError(e.message || 'Something went wrong. Is the backend running?');
     } finally { setIsAnalyzing(false); }
+  };
+
+  const saveFeedback = async () => {
+    if (!analysisId || !feedback) return;
+    await supabase.from('analyses').update({
+      feedback_decision: feedback,
+      feedback_reasons: feedbackReasons,
+    }).eq('id', analysisId);
+    setFeedbackSaved(true);
   };
 
   const toggle = (s) => setOpenSection(o => o === s ? null : s);
@@ -182,6 +205,22 @@ const Home = () => {
               <div style={{ padding:'1.5rem 2rem', borderBottom:'1px solid var(--border-color)', background:'rgba(16,185,129,0.05)' }}>
                 <p style={{ lineHeight:1.7, margin:0, color:'var(--text-primary)', fontSize:'0.95rem' }}>{result.fitReason}</p>
               </div>
+
+              {/* Dream Company Banner */}
+              {result.companyMatch?.isDreamCompany && (
+                <div style={{ padding:'1rem 2rem', borderBottom:'1px solid var(--border-color)', background:'linear-gradient(135deg,rgba(245,158,11,0.08),rgba(239,68,68,0.06))', display:'flex', alignItems:'center', gap:'0.75rem' }}>
+                  <Star size={20} color="#f59e0b" fill="#f59e0b"/>
+                  <div>
+                    <span style={{ fontWeight:700, color:'#f59e0b', fontSize:'0.9rem' }}>Dream Company Match! </span>
+                    <span style={{ fontSize:'0.85rem', color:'var(--text-secondary)' }}>{result.companyMatch.note}</span>
+                  </div>
+                </div>
+              )}
+              {result.companyMatch && !result.companyMatch.isDreamCompany && result.companyMatch.note && (
+                <div style={{ padding:'0.75rem 2rem', borderBottom:'1px solid var(--border-color)', fontSize:'0.82rem', color:'var(--text-secondary)' }}>
+                  🏢 {result.companyMatch.note}
+                </div>
+              )}
 
               {/* Section: Pros & Flags */}
               <Section id="fit" title="✅ Strengths & ⚠️ Red Flags">
@@ -287,6 +326,54 @@ const Home = () => {
                   )}
                 </div>
               </Section>
+
+              {/* ── Feedback Widget ── */}
+              <div style={{ padding:'1.75rem 2rem', borderTop:'1px solid var(--border-color)', background:'rgba(255,255,255,0.02)' }}>
+                {!feedbackSaved ? (
+                  <>
+                    <div style={{ fontWeight:600, fontSize:'0.95rem', marginBottom:'1rem' }}>
+                      Would you apply for this job?
+                    </div>
+                    <div style={{ display:'flex', gap:'0.75rem', marginBottom:'1rem' }}>
+                      <button onClick={() => { setFeedback('yes'); setFeedbackReasons([]); }}
+                        style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.6rem 1.25rem', borderRadius:'8px', border:`2px solid ${feedback==='yes'?'var(--success)':'var(--border-color)'}`, background: feedback==='yes'?'rgba(16,185,129,0.1)':'transparent', color: feedback==='yes'?'var(--success)':'var(--text-secondary)', cursor:'pointer', fontWeight:600, fontSize:'0.9rem', transition:'all 0.15s' }}>
+                        <ThumbsUp size={16}/> Yes, I'd apply
+                      </button>
+                      <button onClick={() => { setFeedback('no'); setFeedbackReasons([]); }}
+                        style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.6rem 1.25rem', borderRadius:'8px', border:`2px solid ${feedback==='no'?'var(--danger)':'var(--border-color)'}`, background: feedback==='no'?'rgba(239,68,68,0.1)':'transparent', color: feedback==='no'?'var(--danger)':'var(--text-secondary)', cursor:'pointer', fontWeight:600, fontSize:'0.9rem', transition:'all 0.15s' }}>
+                        <ThumbsDown size={16}/> Not this one
+                      </button>
+                    </div>
+
+                    {feedback && (
+                      <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }}>
+                        <div style={{ fontSize:'0.82rem', color:'var(--text-secondary)', marginBottom:'0.5rem' }}>
+                          {feedback==='yes' ? 'What made you say yes? (pick any)' : 'What held you back? (pick any)'}
+                        </div>
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:'0.4rem', marginBottom:'1rem' }}>
+                          {(feedback==='yes' ? YES_REASONS : NO_REASONS).map(r => (
+                            <button key={r} onClick={() => toggleReason(r)}
+                              style={{ padding:'0.3rem 0.85rem', borderRadius:'9999px', fontSize:'0.8rem', fontWeight:500, cursor:'pointer', transition:'all 0.12s',
+                                border: feedbackReasons.includes(r) ? `1.5px solid ${feedback==='yes'?'var(--success)':'var(--danger)'}` : '1.5px solid var(--border-color)',
+                                background: feedbackReasons.includes(r) ? (feedback==='yes'?'rgba(16,185,129,0.12)':'rgba(239,68,68,0.1)') : 'transparent',
+                                color: feedbackReasons.includes(r) ? (feedback==='yes'?'var(--success)':'var(--danger)') : 'var(--text-secondary)',
+                              }}>
+                              {feedbackReasons.includes(r) ? '✓ ' : ''}{r}
+                            </button>
+                          ))}
+                        </div>
+                        <button onClick={saveFeedback} className="btn btn-primary" style={{ padding:'0.5rem 1.5rem', fontSize:'0.88rem' }}>
+                          Save Feedback
+                        </button>
+                      </motion.div>
+                    )}
+                  </>
+                ) : (
+                  <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} style={{ display:'flex', alignItems:'center', gap:'0.5rem', color:'var(--success)', fontSize:'0.9rem', fontWeight:600 }}>
+                    <CheckCircle size={18}/> Feedback saved! We'll use this to improve your future results.
+                  </motion.div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

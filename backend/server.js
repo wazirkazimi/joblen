@@ -113,6 +113,8 @@ AI Tools: ${(u.selectedAiTools || []).join(', ') || 'Not provided'}
 
 Target Roles: ${(u.targetRoles || []).join(', ') || 'Not provided'}
 Target Industries: ${(u.industries || []).join(', ') || 'Not provided'}
+Target Companies (dream companies): ${(u.targetCompanies || []).join(', ') || 'Not specified'}
+Past Feedback Pattern: ${u.feedbackSummary || 'No feedback history yet'}
 
 Work Type Preference: ${(pr.workTypes || []).join(', ') || 'Not specified'}
 Preferred Locations: ${(pr.locations || []).join(', ') || 'Not specified'}
@@ -137,8 +139,10 @@ INSTRUCTIONS
 1. Read the JD carefully. Extract: role, company, salary/stipend mentioned, work mode (remote/hybrid/onsite), location, required skills, culture signals.
 2. Compare EACH against the candidate's profile. Be specific — name actual matching and mismatching skills.
 3. Check preference alignment: Does the JD's salary match their minimum? Does location match? Does work type match? Does culture match their Hard No's?
-4. Give a fitScore from 1–10 based on real skill+preference overlap. Do NOT inflate scores.
-5. Write drafts using their actual name, metrics, and personality signal — not placeholders.
+4. Check if the company in the JD matches or is similar to their target companies. Note if it's a dream company match.
+5. Give a fitScore from 1–10 based on real skill+preference overlap. Do NOT inflate scores.
+6. Write drafts using their actual name, metrics, and personality signal — not placeholders.
+7. If feedback history is provided, factor it in — if user has rejected similar roles before, note the pattern.
 
 Return ONLY this JSON (no markdown, no extra text):
 {
@@ -183,6 +187,10 @@ Return ONLY this JSON (no markdown, no extra text):
       "redFlag": <boolean — true if JD culture clashes with Hard No's>,
       "note": "Specific clash or alignment explanation"
     }
+  },
+  "companyMatch": {
+    "isDreamCompany": "<boolean — true if JD company matches or is very similar to candidate's target companies>",
+    "note": "e.g. 'Stripe is on your target list — this is a dream company match! 🎯' or 'Not on your list, but similar to X which you mentioned'"
   },
   "skillsGapAnalysis": {
     "strongMatches": ["Skills the candidate HAS that the JD explicitly needs"],

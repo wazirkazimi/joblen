@@ -1,8 +1,24 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, ShieldCheck, Zap, Mail } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Zap, Mail, Search, User, BarChart3, MessageSquare, CheckCircle, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+const STEPS = [
+  { num:'01', icon:User,       color:'#3b82f6', title:'Build your profile',       desc:'Upload your resume — our AI auto-fills your skills, experience, and education in seconds. Add your target roles, salary expectations, and deal-breakers.' },
+  { num:'02', icon:Search,     color:'#8b5cf6', title:'Paste any job description', desc:'Copy the full text of any LinkedIn, Naukri, Internshala, or company careers post and drop it in. No links needed — just the raw text.' },
+  { num:'03', icon:BarChart3,  color:'#10b981', title:'Get your instant analysis',  desc:'See your Fit Score (1–10), skills gap breakdown, salary comparison, culture check against your hard no\'s, and whether it\'s a dream company match.' },
+  { num:'04', icon:Mail,       color:'#f59e0b', title:'Apply with 1-click drafts',  desc:'Get a personalized cold email, LinkedIn DM, and Q&A answers — all written using YOUR specific metrics, projects, and personality. Not templates.' },
+];
+
+const FEATURES = [
+  { icon:BarChart3,  color:'rgba(59,130,246,0.1)',   iconColor:'#3b82f6', title:'Fit Score',           desc:'Honest 1–10 score based on real skill and preference overlap — not inflated to make you feel good.' },
+  { icon:ShieldCheck,color:'rgba(245,158,11,0.1)',   iconColor:'#f59e0b', title:'Spam Detector',       desc:'AI scans for vague JDs, fake internships, unpaid roles, and unrealistic requirements before you waste time.' },
+  { icon:Search,     color:'rgba(139,92,246,0.1)',   iconColor:'#8b5cf6', title:'Skills Gap Analysis', desc:'Colour-coded: Strong Match, Partial, Missing, and Bonus skills — so you know exactly what to highlight or learn.' },
+  { icon:Star,       color:'rgba(239,68,68,0.1)',    iconColor:'#ef4444', title:'Dream Company Match', desc:'Set your target companies in profile. We flag when a JD is from your wishlist — so you never miss your shot.' },
+  { icon:Mail,       color:'rgba(16,185,129,0.1)',   iconColor:'#10b981', title:'1-Click Drafts',      desc:'Cold email, LinkedIn DM, and application Q&A — all personalized using your actual achievements, not placeholders.' },
+  { icon:MessageSquare,color:'rgba(99,102,241,0.1)',iconColor:'#6366f1', title:'Feedback Loop',       desc:'Tell us if you\'d apply and why. JobLens learns your preferences over time to give sharper results with every analysis.' },
+];
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -10,92 +26,130 @@ const Landing = () => {
   const destination = user ? (profile ? '/dashboard' : '/onboarding') : '/auth';
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width:'100%', minHeight:'100vh', display:'flex', flexDirection:'column', fontFamily:'Inter,system-ui,sans-serif' }}>
+
       {/* Navbar */}
-      <nav style={{ padding: '1.5rem 3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div className="score-circle score-high" style={{ width: '36px', height: '36px', fontSize: '1rem', borderWidth: '3px' }}>JL</div>
-          <h2 style={{ marginBottom: 0, fontSize: '1.5rem' }}>JobLens</h2>
+      <nav style={{ padding:'1.25rem 3rem', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid var(--border-color)', position:'sticky', top:0, backdropFilter:'blur(12px)', zIndex:100 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
+          <div style={{ width:'34px', height:'34px', borderRadius:'9px', background:'linear-gradient(135deg,var(--accent-primary),var(--accent-secondary))', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <Zap size={18} color="white"/>
+          </div>
+          <span style={{ fontWeight:800, fontSize:'1.3rem', color:'var(--text-primary)' }}>JobLens</span>
         </div>
-        <div style={{display:'flex',gap:'0.75rem',alignItems:'center'}}>
+        <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
           {!user ? (
             <>
-              <button className="btn btn-secondary" style={{padding:'0.6rem 1.25rem',fontSize:'0.95rem'}} onClick={() => navigate('/auth')}>
-                Log In
-              </button>
-              <button className="btn btn-primary" style={{padding:'0.6rem 1.25rem',fontSize:'0.95rem'}} onClick={() => navigate('/auth')}>
-                Sign Up Free <ArrowRight size={16}/>
-              </button>
+              <button className="btn btn-secondary" style={{ padding:'0.55rem 1.25rem', fontSize:'0.9rem' }} onClick={() => navigate('/auth')}>Log In</button>
+              <button className="btn btn-primary"   style={{ padding:'0.55rem 1.25rem', fontSize:'0.9rem' }} onClick={() => navigate('/auth')}>Sign Up Free <ArrowRight size={15}/></button>
             </>
           ) : (
             <button className="btn btn-primary" onClick={() => navigate(destination)}>
-              {profile ? 'Dashboard' : 'Complete Profile'} <ArrowRight size={18}/>
+              {profile ? 'Dashboard' : 'Complete Profile'} <ArrowRight size={16}/>
             </button>
           )}
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem' }}>
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          style={{ maxWidth: '800px' }}
-        >
-          <div className="badge badge-primary mb-6" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', padding: '0.5rem 1rem' }}>
-            🚀 The Ultimate AI Career Advisor
+      {/* Hero */}
+      <section style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', padding:'5rem 2rem 3rem' }}>
+        <motion.div initial={{ opacity:0, y:30 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.6 }} style={{ maxWidth:'820px' }}>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:'0.5rem', padding:'0.4rem 1rem', borderRadius:'9999px', background:'rgba(59,130,246,0.1)', border:'1px solid rgba(59,130,246,0.25)', color:'var(--accent-primary)', fontSize:'0.85rem', fontWeight:600, marginBottom:'1.75rem' }}>
+            🚀 AI Career Advisor for Freshers & Early-Career Professionals
           </div>
-          
-          <h1 style={{ fontSize: '4.5rem', lineHeight: 1.1, marginBottom: '1.5rem' }}>
-            Stop guessing.<br />Start <span style={{ color: 'var(--accent-primary)' }}>landing interviews.</span>
+          <h1 style={{ fontSize:'clamp(2.5rem,6vw,4.5rem)', lineHeight:1.1, fontWeight:800, marginBottom:'1.5rem', color:'var(--text-primary)' }}>
+            Stop guessing.<br/>Start <span style={{ color:'var(--accent-primary)' }}>landing interviews.</span>
           </h1>
-          
-          <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', marginBottom: '3rem', maxWidth: '600px', margin: '0 auto 3rem' }}>
-            Paste any LinkedIn job post. We analyze your fit, spot red flags, and instantly draft highly personalized cold emails that actually get replies.
+          <p style={{ fontSize:'1.15rem', color:'var(--text-secondary)', maxWidth:'600px', margin:'0 auto 2.5rem', lineHeight:1.7 }}>
+            Paste any job description → get a personalized fit score, skills gap breakdown, salary check, and a cold email that actually sounds like you — in under 10 seconds.
           </p>
+          <div style={{ display:'flex', gap:'1rem', justifyContent:'center', flexWrap:'wrap' }}>
+            <button className="btn btn-primary" style={{ fontSize:'1.05rem', padding:'0.9rem 2.25rem', borderRadius:'50px' }} onClick={() => navigate(destination)}>
+              {user && profile ? 'Open Dashboard' : 'Start Free — No Credit Card'} <ArrowRight size={18}/>
+            </button>
+            {!user && (
+              <button className="btn btn-secondary" style={{ fontSize:'1.05rem', padding:'0.9rem 2.25rem', borderRadius:'50px' }} onClick={() => navigate('/auth')}>
+                Log In
+              </button>
+            )}
+          </div>
+          <p style={{ fontSize:'0.8rem', color:'var(--text-secondary)', marginTop:'1rem', opacity:0.7 }}>
+            ✓ Free forever &nbsp;·&nbsp; ✓ No email needed to try &nbsp;·&nbsp; ✓ Works on any job post
+          </p>
+        </motion.div>
+      </section>
 
-          <button 
-            className="btn btn-primary" 
-            style={{ fontSize: '1.2rem', padding: '1rem 2.5rem', borderRadius: '50px' }}
-            onClick={() => navigate(destination)}
-          >
-            {user && profile ? 'Open Dashboard' : 'Start Here — It\'s Free'} <ArrowRight size={20} />
+      {/* How it works */}
+      <section style={{ padding:'5rem 2rem', maxWidth:'1100px', margin:'0 auto', width:'100%' }}>
+        <motion.div initial={{ opacity:0, y:30 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:0.5 }}>
+          <div style={{ textAlign:'center', marginBottom:'3.5rem' }}>
+            <h2 style={{ fontSize:'2rem', fontWeight:800, marginBottom:'0.75rem' }}>How it works</h2>
+            <p style={{ color:'var(--text-secondary)', fontSize:'1rem' }}>From zero to a personalized cold email in 4 steps</p>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:'1.5rem' }}>
+            {STEPS.map((s, i) => (
+              <motion.div key={i} initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ delay:i*0.1 }}
+                className="glass-panel" style={{ padding:'2rem', position:'relative', overflow:'hidden' }}>
+                <div style={{ fontSize:'3rem', fontWeight:900, color:'rgba(255,255,255,0.04)', position:'absolute', top:'-0.5rem', right:'1rem', lineHeight:1 }}>{s.num}</div>
+                <div style={{ width:'44px', height:'44px', borderRadius:'12px', background:`${s.color}22`, border:`1px solid ${s.color}44`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'1.25rem' }}>
+                  <s.icon size={22} color={s.color}/>
+                </div>
+                <h3 style={{ fontSize:'1rem', fontWeight:700, marginBottom:'0.6rem' }}>{s.title}</h3>
+                <p style={{ color:'var(--text-secondary)', fontSize:'0.88rem', lineHeight:1.65, margin:0 }}>{s.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Features */}
+      <section style={{ padding:'3rem 2rem 5rem', maxWidth:'1100px', margin:'0 auto', width:'100%' }}>
+        <motion.div initial={{ opacity:0, y:30 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:0.5 }}>
+          <div style={{ textAlign:'center', marginBottom:'3rem' }}>
+            <h2 style={{ fontSize:'2rem', fontWeight:800, marginBottom:'0.75rem' }}>Everything you need to apply smarter</h2>
+            <p style={{ color:'var(--text-secondary)', fontSize:'1rem' }}>Not just a score — a full decision-making toolkit</p>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:'1.25rem' }}>
+            {FEATURES.map((f, i) => (
+              <motion.div key={i} initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ delay:i*0.08 }}
+                className="glass-panel" style={{ padding:'1.75rem', display:'flex', gap:'1rem', alignItems:'flex-start' }}>
+                <div style={{ width:'42px', height:'42px', borderRadius:'10px', background:f.color, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <f.icon size={20} color={f.iconColor}/>
+                </div>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:'0.95rem', marginBottom:'0.35rem' }}>{f.title}</div>
+                  <div style={{ color:'var(--text-secondary)', fontSize:'0.85rem', lineHeight:1.6 }}>{f.desc}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* CTA Bottom */}
+      <section style={{ padding:'4rem 2rem', textAlign:'center', borderTop:'1px solid var(--border-color)' }}>
+        <motion.div initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }}>
+          <h2 style={{ fontSize:'2rem', fontWeight:800, marginBottom:'1rem' }}>Ready to stop guessing?</h2>
+          <p style={{ color:'var(--text-secondary)', marginBottom:'2rem', fontSize:'1rem' }}>Build your profile once. Analyze any job in seconds.</p>
+          <button className="btn btn-primary" style={{ fontSize:'1.1rem', padding:'0.95rem 2.5rem', borderRadius:'50px' }} onClick={() => navigate(destination)}>
+            Get Started Free <ArrowRight size={18}/>
           </button>
-        </motion.div>
-
-        {/* Feature Grid */}
-        <motion.div 
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginTop: '5rem', maxWidth: '1000px', width: '100%' }}
-        >
-          <div className="glass-panel" style={{ padding: '2rem', textAlign: 'left' }}>
-            <div style={{ background: 'rgba(59, 130, 246, 0.1)', width: '50px', height: '50px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-              <Zap size={24} color="var(--accent-primary)" />
-            </div>
-            <h3 className="mb-2">Instant Fit Scores</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>We map your exact metrics and skills to the job description to tell you if it's a High, Medium, or Stretch match.</p>
-          </div>
-
-          <div className="glass-panel" style={{ padding: '2rem', textAlign: 'left' }}>
-            <div style={{ background: 'rgba(245, 158, 11, 0.1)', width: '50px', height: '50px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-              <ShieldCheck size={24} color="var(--warning)" />
-            </div>
-            <h3 className="mb-2">Spot Fake Jobs</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Our AI scans for vague responsibilities, unpaid "internships", and unrealistic experience requirements.</p>
-          </div>
-
-          <div className="glass-panel" style={{ padding: '2rem', textAlign: 'left' }}>
-            <div style={{ background: 'rgba(16, 185, 129, 0.1)', width: '50px', height: '50px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-              <Mail size={24} color="var(--success)" />
-            </div>
-            <h3 className="mb-2">1-Click Drafts</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Automatically generate highly personalized cold emails and DMs using your specific personality signal and metrics.</p>
+          <div style={{ display:'flex', justifyContent:'center', gap:'2rem', marginTop:'1.5rem', flexWrap:'wrap' }}>
+            {['✓ Free forever','✓ No credit card','✓ Works on any job post','✓ Resume auto-fill'].map(t => (
+              <span key={t} style={{ fontSize:'0.82rem', color:'var(--text-secondary)' }}>{t}</span>
+            ))}
           </div>
         </motion.div>
-      </main>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ padding:'1.5rem 3rem', borderTop:'1px solid var(--border-color)', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'0.5rem' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', fontSize:'0.85rem', color:'var(--text-secondary)' }}>
+          <Zap size={14} color="var(--accent-primary)"/> JobLens — Built for freshers
+        </div>
+        <div style={{ fontSize:'0.8rem', color:'var(--text-secondary)', opacity:0.6 }}>
+          © {new Date().getFullYear()} JobLens. All rights reserved.
+        </div>
+      </footer>
     </div>
   );
 };

@@ -45,8 +45,14 @@ export const AuthProvider = ({ children }) => {
     if (!user) return new Error('Not logged in');
     const { error } = await supabase
       .from('profiles')
-      .upsert({ user_id: user.id, profile_data: profileData, updated_at: new Date().toISOString() });
-    if (!error) setProfile(profileData);
+      .upsert(
+        { user_id: user.id, profile_data: profileData, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
+    if (!error) {
+      // Force re-fetch to confirm DB state — this is what reflects in UI
+      await fetchProfile(user.id);
+    }
     return error;
   };
 
