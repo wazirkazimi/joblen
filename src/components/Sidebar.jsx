@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Search, User, Clock, LogOut, Zap } from 'lucide-react';
+import { Search, User, Clock, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import Logo from './Logo';
 
 const navLinkStyle = (isActive) => ({
   padding: '0.85rem 1rem',
@@ -26,11 +27,8 @@ const Sidebar = () => {
   return (
     <aside className="sidebar glass-panel" style={{ borderRadius: 0, borderTop: 'none', borderBottom: 'none', borderLeft: 'none' }}>
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Zap size={18} color="white" />
-        </div>
-        <h2 style={{ marginBottom: 0, fontSize: '1.5rem' }}>JobLens</h2>
+      <div style={{ marginBottom:'2.5rem', paddingBottom:'1.5rem', borderBottom:'1px solid var(--border-color)' }}>
+        <Logo size={36} textSize="1.4rem" />
       </div>
 
       {/* Nav Links */}

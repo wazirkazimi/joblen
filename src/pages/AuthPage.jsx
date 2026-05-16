@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, Zap, ArrowRight, Eye, EyeOff, ShieldCheck, User, KeyRound, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Eye, EyeOff, ShieldCheck, User, KeyRound, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import Logo from '../components/Logo';
 
 // mode: 'login' | 'signup' | 'forgot' | 'forgot-sent'
 const AuthPage = () => {
@@ -76,14 +77,9 @@ const AuthPage = () => {
     return (
       <div style={{ width:'100%', minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'2rem' }}>
         {/* Logo */}
-        <motion.div initial={{ opacity:0, y:-20 }} animate={{ opacity:1, y:0 }} style={{ textAlign:'center', marginBottom:'2.5rem' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'0.75rem', marginBottom:'0.5rem' }}>
-            <div style={{ width:'44px', height:'44px', borderRadius:'12px', background:'linear-gradient(135deg,var(--accent-primary),var(--accent-secondary))', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <Zap size={22} color="white"/>
-            </div>
-            <h1 style={{ fontSize:'2rem', marginBottom:0 }}>JobLens</h1>
-          </div>
-        </motion.div>
+        <div style={{ textAlign:'center', marginBottom:'2.5rem' }}>
+          <Logo size={56} textSize="2rem" />
+        </div>
 
         <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}
           className="glass-panel" style={{ width:'100%', maxWidth:'440px', padding:'2.5rem' }}>
@@ -136,15 +132,10 @@ const AuthPage = () => {
   return (
     <div style={{ width:'100%', minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'2rem' }}>
       {/* Logo */}
-      <motion.div initial={{ opacity:0, y:-20 }} animate={{ opacity:1, y:0 }} style={{ textAlign:'center', marginBottom:'2.5rem' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'0.75rem', marginBottom:'0.5rem' }}>
-          <div style={{ width:'44px', height:'44px', borderRadius:'12px', background:'linear-gradient(135deg,var(--accent-primary),var(--accent-secondary))', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Zap size={22} color="white"/>
-          </div>
-          <h1 style={{ fontSize:'2rem', marginBottom:0 }}>JobLens</h1>
+        <div style={{ textAlign:'center', marginBottom:'2.5rem' }}>
+          <Logo size={56} textSize="2rem" />
+          <p style={{ color:'var(--text-secondary)', fontSize:'0.95rem', marginTop:'0.5rem' }}>Your AI-powered career advisor for freshers</p>
         </div>
-        <p style={{ color:'var(--text-secondary)', fontSize:'0.95rem' }}>Your AI-powered career advisor for freshers</p>
-      </motion.div>
 
       {/* Card */}
       <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}

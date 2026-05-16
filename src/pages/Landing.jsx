@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, ShieldCheck, Zap, Mail, Search, User, BarChart3, MessageSquare, CheckCircle, Star } from 'lucide-react';
+import { ArrowRight, ShieldCheck, BarChart3, Mail, Search, User, MessageSquare, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Logo from '../components/Logo';
 
 const STEPS = [
   { num:'01', icon:User,       color:'#3b82f6', title:'Build your profile',       desc:'Upload your resume — our AI auto-fills your skills, experience, and education in seconds. Add your target roles, salary expectations, and deal-breakers.' },
@@ -31,10 +32,7 @@ const Landing = () => {
       {/* Navbar */}
       <nav style={{ padding:'1.25rem 3rem', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid var(--border-color)', position:'sticky', top:0, backdropFilter:'blur(12px)', zIndex:100 }}>
         <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
-          <div style={{ width:'34px', height:'34px', borderRadius:'9px', background:'linear-gradient(135deg,var(--accent-primary),var(--accent-secondary))', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Zap size={18} color="white"/>
-          </div>
-          <span style={{ fontWeight:800, fontSize:'1.3rem', color:'var(--text-primary)' }}>JobLens</span>
+        <Logo size={32} textSize="1.3rem" />
         </div>
         <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
           {!user ? (
@@ -144,7 +142,7 @@ const Landing = () => {
       {/* Footer */}
       <footer style={{ padding:'1.5rem 3rem', borderTop:'1px solid var(--border-color)', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'0.5rem' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', fontSize:'0.85rem', color:'var(--text-secondary)' }}>
-          <Zap size={14} color="var(--accent-primary)"/> JobLens — Built for freshers
+        <Logo size={18} showText={false} />  JobLens — Built for freshers
         </div>
         <div style={{ fontSize:'0.8rem', color:'var(--text-secondary)', opacity:0.6 }}>
           © {new Date().getFullYear()} JobLens. All rights reserved.
