@@ -47,7 +47,7 @@ export default function History() {
   );
 
   return (
-    <div style={{ maxWidth:'860px', margin:'0 auto', paddingTop:'1rem' }}>
+    <div style={{ maxWidth:'700px', margin:'0 auto', paddingTop:'1rem' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }
 
@@ -111,11 +111,12 @@ export default function History() {
                         {r.fitScore ?? '?'}
                       </div>
 
-                      {/* Info block — grows, clips overflow */}
-                      <div style={{ flex:1, minWidth:0, overflow:'hidden' }}>
+                      {/* Info block — grows, wraps */}
+                      <div style={{ flex:1, minWidth:0 }}>
                         <div
                           className="history-role"
-                          style={{ fontWeight:600, fontSize:'0.93rem', marginBottom:'0.2rem', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
+                          style={{ fontWeight:600, fontSize:'0.93rem', marginBottom:'0.2rem', lineHeight:1.35,
+                            display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}
                         >
                           {r.role || 'Unknown Role'}
                           <span style={{ color:'var(--text-secondary)', fontWeight:400 }}> @ </span>
