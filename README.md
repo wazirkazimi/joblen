@@ -1,38 +1,53 @@
-# 🔍 JobLens
+# JobLens 🔍
 
-> **AI-powered job description analyzer for students and early-career professionals.**  
-> Paste any job description → get a personalized fit score, skills gap analysis, salary comparison, culture check, cold email draft, LinkedIn DM, and application Q&A — all in seconds.
+> **AI-powered job fit analyzer for freshers and early-career professionals.**
+> Paste any job description → get a personalized fit score, skills gap breakdown, salary check, culture match, dream company detection, and a cold email that actually sounds like you — in under 4 seconds.
+
+**Live:** [joblen.vercel.app](https://joblen.vercel.app) · **Backend:** [joblen.onrender.com](https://joblen.onrender.com)
 
 ---
 
 ## ✨ Features
 
-### 🧠 AI Analysis Engine
-- **Fit Score** (1–10) — honest, profile-specific scoring
-- **Preference Match** — compares your salary, location, work type & culture against the JD
-- **Skills Gap Analysis** — colour-coded: Strong Match / Partial / Missing / Bonus
-- **Red Flags** — spots vague, unpaid, or spam job posts
-- **Application Drafts** — personalized cold email, LinkedIn DM, and Q&A answers
+### 🎯 Core Analysis Engine
+- **Fit Score (1–10)** — honest, non-inflated score based on real skill + preference overlap
+- **Probability** — High / Medium / Stretch classification
+- **Skills Gap Analysis** — colour-coded: Strong Match, Partial Match, Missing, Bonus Skills
+- **Preference Check** — salary, location, work type, and culture vs. your hard no's
+- **Spam Detector** — flags vague JDs, unpaid roles, and unrealistic requirements
+- **Dream Company Match** — ⭐ banner when the JD company matches your target companies list
+- **Application Q&A** — auto-generated answers to likely screening questions
 
-### 🧭 8-Step Smart Onboarding
-1. **Resume Upload** — AI parses PDF and auto-fills all fields
-2. **Career Goals** — pick up to 2 (max)
-3. **Basic Info** — name, city, education, graduation year
-4. **Clubs & Contributions** — projects, internships, open-source with duration picker
-5. **Skills & Tools** — searchable dropdowns for hard skills, soft skills, daily tools, AI tools
-6. **Target Roles & Industries** — flat searchable list (works for technical & non-technical)
-7. **Preferences** — work type, locations (all Indian states + global), stipend, availability, hard no's
-8. **Proof of Work + Personality Signal** — resume text and your proudest achievement
+### ✉️ 1-Click Drafts
+- **Cold Email** — personalized using your name, top metric, and personality signal (150–200 words with subject line)
+- **LinkedIn DM** — punchy 3–4 line message using a specific JD detail
 
-### 👤 Profile Page
-- Wellfound-style white/blue card layout
-- **Inline editing** — click Edit on any card, change details, hit Save. No redirect to onboarding.
-- **Completeness tracker** — shows exactly which fields are missing with a % progress bar
+### 🧠 Personalization & Feedback Loop
+- **User Feedback Widget** — after every analysis: 👍 Yes I'd apply / 👎 Not this one
+- **Quick-pick reason chips** — no free-text typing, just tap what resonated
+- **Feedback saved to DB** — future analyses factor in your pattern (e.g., if you keep skipping low-salary roles)
+- **Profile completeness meter** — tracks what's missing and prompts you to fill it in
 
-### 📜 History
-- Every analysis is auto-saved to Supabase
-- Expandable cards with score, email draft, pros/flags
-- Delete individual analyses
+### 🔐 Authentication
+- Email/password sign up & log in via Supabase Auth
+- **Forgot Password** flow — "Send Reset Link" → email → one-click reset
+- Persistent sessions across page reloads
+
+### 📜 Analysis History
+- All analyses auto-saved to Supabase
+- Expandable cards with fit reason, pros/flags, and email draft preview
+- Feedback badge (👍 / 👎) shown per entry
+- Delete individual entries
+- Mobile-optimised: 2-line role clamp, wrapping meta row, compact score circle
+
+### 🎨 UI / UX
+- Premium dark glassmorphism design with gradient accents
+- Fully **mobile responsive** on all screen sizes
+- Slide-in sidebar drawer with hamburger (top-right) on mobile
+- **Logo analyzing animation** — pulsing logo + expanding rings + shimmer progress bar while AI processes
+- Smooth Framer Motion transitions on page load, result reveal, and section expansion
+- Sticky navbar on landing page
+- **Vercel Analytics** — page view tracking built in
 
 ---
 
@@ -40,14 +55,17 @@
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite, Framer Motion |
-| Styling | Vanilla CSS (custom design system) |
-| Auth & DB | Supabase (Auth + PostgreSQL + RLS) |
-| AI | Groq SDK (`llama-3.3-70b-versatile`) |
-| Resume Parse | `pdf-parse` v1.1.1 |
-| Backend | Express.js (Node.js) |
-| Icons | Lucide React |
-| Routing | React Router v6 |
+| **Frontend** | React 18 + Vite |
+| **Styling** | Vanilla CSS (glassmorphism, custom design system) |
+| **Animations** | Framer Motion |
+| **Icons** | Lucide React |
+| **Auth + DB** | Supabase (Auth + PostgreSQL + RLS) |
+| **AI / LLM** | Groq API — `llama-3.1-8b-instant` |
+| **Backend** | Node.js + Express |
+| **Resume Parse** | `pdf-parse@1.1.1` |
+| **Analytics** | Vercel Analytics |
+| **Frontend Deploy** | Vercel |
+| **Backend Deploy** | Render |
 
 ---
 
@@ -55,73 +73,68 @@
 
 ```
 joblen/
+├── public/
+│   ├── favicon.png          # White-circle logo (visible on all browser tabs)
+│   ├── logo.png             # Dark branded logo (app branding)
+│   └── logo-light.png       # Light logo (favicon, Apple touch icon)
+│
 ├── backend/
-│   ├── server.js          # Express API (resume parse + JD analyze)
+│   ├── server.js            # Express API (analyze + resume parse)
 │   ├── package.json
-│   └── .env               # GROQ_API_KEY
+│   └── .env                 # GROQ_API_KEY, PORT (never committed)
 │
 ├── src/
 │   ├── components/
-│   │   ├── EditCard.jsx          # Reusable inline-edit card wrapper
-│   │   ├── SearchableDropdown.jsx # Multi-select with custom value support
-│   │   ├── MultiSelect.jsx        # ChipSelect + CategoryChips
-│   │   ├── DurationPicker.jsx     # Month/Year start-end picker
-│   │   └── Sidebar.jsx
+│   │   ├── Logo.jsx          # Reusable logo component (variant: dark | light)
+│   │   ├── Sidebar.jsx       # Nav sidebar with mobile hamburger drawer
+│   │   ├── EditCard.jsx      # Collapsible edit card for profile sections
+│   │   ├── MultiSelect.jsx   # Chip-select multi-option component
+│   │   ├── SearchableDropdown.jsx
+│   │   └── DurationPicker.jsx
 │   │
 │   ├── context/
-│   │   └── AuthContext.jsx        # Supabase auth + profile state
+│   │   └── AuthContext.jsx   # Auth state, profile save (onConflict upsert + re-fetch)
 │   │
 │   ├── lib/
-│   │   ├── supabase.js            # Supabase client
-│   │   └── config.js              # BACKEND_URL (dev vs production)
+│   │   ├── supabase.js       # Supabase client (env-vars only, no hardcoded fallbacks)
+│   │   └── config.js         # BACKEND_URL centralised
 │   │
 │   ├── pages/
-│   │   ├── Landing.jsx
-│   │   ├── AuthPage.jsx           # Login + Sign Up
-│   │   ├── Onboarding.jsx         # 8-step wizard
-│   │   ├── Home.jsx               # Dashboard + JD analyzer
-│   │   ├── Profile.jsx            # Inline-edit profile page
-│   │   ├── History.jsx            # Saved analyses from Supabase
-│   │   └── onboarding/
-│   │       ├── Step1Goals.jsx
-│   │       ├── Step2Profile.jsx
-│   │       ├── Step3Clubs.jsx
-│   │       ├── Step4Skills.jsx
-│   │       ├── Step5Roles.jsx
-│   │       └── Step6Prefs.jsx
+│   │   ├── Landing.jsx       # Marketing page: hero, how-it-works, features, CTA
+│   │   ├── AuthPage.jsx      # Login / Signup / Forgot Password (3-mode)
+│   │   ├── Onboarding.jsx    # 6-step onboarding wizard with resume upload
+│   │   ├── Home.jsx          # Dashboard: JD input, analysis results, feedback widget
+│   │   ├── Profile.jsx       # Edit profile cards (2-col → 1-col on mobile)
+│   │   └── History.jsx       # Saved analyses from Supabase (mobile-optimised)
 │   │
-│   ├── App.jsx
-│   ├── main.jsx
-│   └── index.css
+│   ├── App.jsx               # Routes + sidebar layout logic
+│   ├── main.jsx              # Entry point + Vercel Analytics
+│   └── index.css             # Global design system + full responsive CSS
 │
-├── supabase_analyses.sql  # SQL to run in Supabase for history table
-├── vercel.json            # SPA routing fix for Vercel
-├── .env                   # Frontend env vars (Supabase keys)
-├── .env.production        # Production env (with Railway URL)
+├── supabase_analyses.sql     # Run in Supabase SQL Editor (analyses + feedback columns)
+├── vercel.json               # SPA routing: all paths → index.html
+├── index.html                # Favicon, SEO meta, OG + Twitter card tags
+├── .env                      # Frontend env vars (never committed)
 └── package.json
 ```
 
 ---
 
-## ⚙️ Local Development Setup
+## 🚀 Local Development
 
 ### Prerequisites
 - Node.js 18+
 - A [Supabase](https://supabase.com) project
 - A [Groq](https://console.groq.com) API key
 
----
-
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/joblen.git
+git clone https://github.com/wazirkazimi/joblen.git
 cd joblen
 ```
 
----
-
-### 2. Frontend — environment variables
+### 2. Frontend environment variables
 
 Create `.env` in the root `/joblen` folder:
 
@@ -131,9 +144,9 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_BACKEND_URL=http://localhost:5000
 ```
 
----
+> ⚠️ Get these from **Supabase → Settings → API**. The URL and key must match the **same project**.
 
-### 3. Backend — environment variables
+### 3. Backend environment variables
 
 Create `.env` inside `/joblen/backend`:
 
@@ -142,8 +155,6 @@ GROQ_API_KEY=your_groq_api_key
 PORT=5000
 ```
 
----
-
 ### 4. Install dependencies
 
 ```bash
@@ -151,17 +162,14 @@ PORT=5000
 npm install
 
 # Backend
-cd backend
-npm install
-cd ..
+cd backend && npm install && cd ..
 ```
 
----
+### 5. Set up Supabase tables
 
-### 5. Set up Supabase
+Run the following in **Supabase → SQL Editor**:
 
-#### a) Create the `profiles` table
-Run this in **Supabase → SQL Editor**:
+#### `profiles` table
 
 ```sql
 create table if not exists public.profiles (
@@ -183,8 +191,7 @@ create policy "Users can update own profile"
   on public.profiles for update using (auth.uid() = user_id);
 ```
 
-#### b) Create the `analyses` table
-Run the contents of `supabase_analyses.sql`:
+#### `analyses` table (copy from `supabase_analyses.sql`)
 
 ```sql
 create table if not exists public.analyses (
@@ -192,6 +199,8 @@ create table if not exists public.analyses (
   user_id uuid references auth.users(id) on delete cascade not null,
   job_description text,
   result jsonb not null,
+  feedback_decision text,      -- 'yes' | 'no'
+  feedback_reasons  text[],    -- array of reason strings
   created_at timestamptz default now()
 );
 
@@ -203,14 +212,22 @@ create policy "Users can read own analyses"
 create policy "Users can insert own analyses"
   on public.analyses for insert with check (auth.uid() = user_id);
 
+create policy "Users can update own analyses"
+  on public.analyses for update using (auth.uid() = user_id);
+
 create policy "Users can delete own analyses"
   on public.analyses for delete using (auth.uid() = user_id);
 ```
 
-#### c) Disable email confirmation (for dev)
-Supabase → **Authentication → Email** → turn off **"Confirm email"**
+> If the `analyses` table already exists without the feedback columns, run:
+> ```sql
+> alter table public.analyses add column if not exists feedback_decision text;
+> alter table public.analyses add column if not exists feedback_reasons text[];
+> create policy "Users can update own analyses" on public.analyses for update using (auth.uid() = user_id);
+> ```
 
----
+#### Auth settings
+Supabase → **Authentication → Email** → turn off **"Confirm email"** (for dev)
 
 ### 6. Run locally
 
@@ -228,152 +245,210 @@ npm run dev
 
 ---
 
-## 🚀 Deployment
+## ☁️ Production Deployment
 
-### Backend → Railway
+### Backend → Render
 
-1. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
-2. Set **Root Directory**: `backend`
-3. Add environment variables:
+1. [render.com](https://render.com) → New → **Web Service** → connect GitHub repo
+2. **Root Directory**: `backend`
+3. **Start Command**: `node server.js`
+4. **Environment Variables**:
    ```
    GROQ_API_KEY=your_groq_key
    PORT=5000
    ```
-4. Copy the generated Railway URL (e.g. `https://joblen-backend.up.railway.app`)
+5. Copy your Render URL (e.g. `https://joblen.onrender.com`)
 
----
+> ⚠️ Free tier goes to sleep after 15 min inactivity. First request after sleep takes ~15–30s (cold start). Upgrade to Starter ($7/mo) to eliminate this.
 
 ### Frontend → Vercel
 
-1. Go to [vercel.com](https://vercel.com) → New Project → Import GitHub repo
+1. [vercel.com](https://vercel.com) → New Project → Import GitHub repo
 2. **Framework Preset**: `Vite`
 3. **Root Directory**: `./`
-4. Add environment variables:
+4. **Environment Variables**:
 
    | Key | Value |
    |-----|-------|
-   | `VITE_SUPABASE_URL` | Your Supabase URL |
+   | `VITE_SUPABASE_URL` | `https://your-project-id.supabase.co` |
    | `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key |
-   | `VITE_BACKEND_URL` | Your Railway backend URL |
+   | `VITE_BACKEND_URL` | `https://joblen.onrender.com` |
 
 5. Click **Deploy**
 
----
-
 ### Post-Deployment Checklist
 
-- [ ] Update `backend/server.js` CORS origin with your Vercel domain
-- [ ] Supabase → **Auth → URL Configuration** → add your Vercel domain to Redirect URLs
+- [ ] Supabase → **Auth → URL Configuration → Redirect URLs** → add `https://joblen.vercel.app/**`
 - [ ] Run both SQL scripts in Supabase SQL Editor
-- [ ] Test sign up, onboarding, and JD analysis end-to-end
+- [ ] Verify Vercel env vars match the **exact same Supabase project** (URL and anon key must have matching project IDs)
+- [ ] Test: sign up → onboarding → paste a JD → analyze → check history
 
 ---
 
 ## 🔌 API Reference
 
 ### `POST /api/parse-resume`
+
 Parses a PDF resume and extracts structured profile data.
 
-**Request:** `multipart/form-data` with field `resume` (PDF file)
+**Request:** `multipart/form-data` — field: `resume` (PDF)
 
 **Response:**
 ```json
 {
-  "profile": { "name": "...", "city": "...", "education": "...", "gradYear": "..." },
-  "experiences": [{ "company": "...", "role": "...", "duration": "...", "metric": "...", "types": [] }],
-  "skills": "React, Python, ...",
-  "tools": "Notion, Figma, ...",
-  "rawText": "full resume text..."
+  "profile":     { "name": "...", "city": "...", "education": "...", "gradYear": "..." },
+  "experiences": [{ "company": "...", "role": "...", "duration": "...", "metric": "..." }],
+  "skills":      "React, Python, ...",
+  "tools":       "Notion, Figma, ...",
+  "rawText":     "full resume text..."
 }
 ```
 
 ---
 
 ### `POST /api/analyze`
-Analyzes a job description against the user's profile.
+
+Analyzes a job description against the user's profile using Groq LLM.
 
 **Request:**
 ```json
 {
   "jobDescription": "Full JD text...",
-  "userProfile": { ...full profile object... }
+  "userProfile":    { "...full profile object..." }
 }
 ```
 
 **Response:**
 ```json
 {
-  "company": "Acme Corp",
-  "role": "Product Manager Intern",
-  "fitScore": 7,
-  "probability": "High",
-  "fitReason": "...",
-  "isSpam": false,
-  "pros": ["..."],
-  "flags": ["..."],
+  "company":      "Acme Corp",
+  "role":         "Product Manager Intern",
+  "fitScore":     7,
+  "probability":  "High",
+  "fitReason":    "2–3 sentences personalized to candidate...",
+  "isSpam":       false,
+  "spamReason":   "...",
+  "pros":         ["Skill match...", "..."],
+  "flags":        ["Gap in X...", "..."],
+  "companyMatch": {
+    "isDreamCompany": true,
+    "note": "Stripe is on your target list — dream company match! 🎯"
+  },
   "preferenceCheck": {
-    "salary": { "jdOffers": "...", "candidateExpects": "...", "match": "Yes", "note": "..." },
-    "location": { ... },
-    "workType": { ... },
-    "culture": { "jdCultureSignals": "...", "candidateHardNos": "...", "redFlag": false, "note": "..." }
+    "salary":   { "jdOffers": "...", "candidateExpects": "...", "match": "Yes", "note": "..." },
+    "location": { "jdLocation": "...", "candidatePrefers": "...", "match": "Yes", "note": "..." },
+    "workType": { "jdType": "...", "candidatePrefers": "...", "match": "Yes", "note": "..." },
+    "culture":  { "jdCultureSignals": "...", "candidateHardNos": "...", "redFlag": false, "note": "..." }
   },
   "skillsGapAnalysis": {
-    "strongMatches": ["..."],
+    "strongMatches":  ["..."],
     "partialMatches": ["..."],
-    "missingSkills": ["..."],
-    "bonusSkills": ["..."]
+    "missingSkills":  ["..."],
+    "bonusSkills":    ["..."]
   },
-  "emailDraft": "Subject: ...\n\n...",
-  "dmDraft": "...",
-  "applicationQA": [{ "question": "...", "answer": "..." }]
+  "emailDraft":     "Subject: ...\n\nDear hiring manager...",
+  "dmDraft":        "Hey [Name], saw your post about...",
+  "applicationQA":  [{ "question": "...", "answer": "..." }]
 }
 ```
 
 ---
 
-## 🗝 Environment Variables Reference
+## 🔑 Environment Variables
 
 ### Frontend (`.env`)
 
 | Variable | Description |
-|----------|-------------|
-| `VITE_SUPABASE_URL` | Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous/public key |
-| `VITE_BACKEND_URL` | Backend server URL (`http://localhost:5000` in dev) |
+|---|---|
+| `VITE_SUPABASE_URL` | Supabase project URL (from Settings → API) |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key (must match same project) |
+| `VITE_BACKEND_URL` | Backend URL (`http://localhost:5000` locally, Render URL in prod) |
 
 ### Backend (`backend/.env`)
 
 | Variable | Description |
-|----------|-------------|
-| `GROQ_API_KEY` | Groq API key for LLM inference |
-| `PORT` | Server port (default: 5000) |
+|---|---|
+| `GROQ_API_KEY` | Groq API key from [console.groq.com](https://console.groq.com) |
+| `PORT` | Server port (default: `5000`) |
 
 ---
 
-## 🧩 Key Design Decisions
+## 📱 Mobile Responsiveness
+
+| Page | Mobile behaviour |
+|---|---|
+| **Landing** | Sticky nav, hero scales, 4-col grid → 2-col → 1-col |
+| **Auth** | Full-width card, logo centred |
+| **Dashboard** | Hamburger ☰ (top-right) opens slide-in sidebar drawer |
+| **Home (Analyzer)** | Score header stacks, pros/flags → 1-col, feedback chips wrap |
+| **Profile** | 2-col card grid → 1-col |
+| **History** | Cards 700px max, role wraps 2 lines, meta row wraps gracefully |
+
+---
+
+## 🎨 Logo Usage
+
+Two logo variants in `/public`:
+
+| File | Used for |
+|---|---|
+| `logo.png` | App branding — sidebar, auth page, landing navbar (dark background) |
+| `logo-light.png` / `favicon.png` | Browser tab favicon, Apple touch icon (white circle, visible on all backgrounds) |
+
+Use the `<Logo>` component anywhere:
+```jsx
+import Logo from '../components/Logo';
+
+<Logo size={36} />                    // dark variant, with wordmark
+<Logo size={56} variant="light" />    // light variant
+<Logo size={24} showText={false} />   // icon only
+```
+
+---
+
+## ⚡ Performance
+
+| Optimization | Detail |
+|---|---|
+| **LLM Model** | `llama-3.1-8b-instant` — 800+ tok/sec on Groq (~4s total) |
+| **max_tokens: 2500** | Caps output, prevents runaway generation |
+| **Supabase upsert** | `onConflict: 'user_id'` — safe re-saves without duplicates |
+| **Re-fetch after save** | Profile changes reflect immediately after save |
+| **AnimatePresence** | Smooth unmount animations prevent jarring layout shifts |
+
+---
+
+## 🗺️ Key Design Decisions
 
 | Decision | Reason |
-|----------|--------|
-| Groq `llama-3.3-70b-versatile` | Fast, free tier, excellent instruction following |
-| `temperature: 0.4` for analysis | Reduces hallucination, more factual scoring |
-| `pdf-parse@1.1.1` (not v2) | v2 breaks CommonJS import; v1.1.1 is stable |
-| Supabase RLS on all tables | Users can only read/write their own data |
-| `profileChecked` flag in AuthContext | Prevents redirect loop when Supabase table doesn't exist yet |
-| Flat searchable dropdowns | Non-technical users can't navigate categorized skill trees |
+|---|---|
+| `llama-3.1-8b-instant` over 70B | 10× faster, equal quality for structured JSON tasks |
+| Env-vars only in `supabase.js` | Prevents silent failures from hardcoded wrong project IDs |
+| `onConflict: 'user_id'` upsert | Idempotent profile saves — no duplicates ever |
+| Re-fetch profile after save | Guarantees UI reflects actual DB state, not optimistic cache |
+| Feedback chip-select not free-text | Zero friction — users tap reasons, don't type essays |
+| CORS regex for `*.vercel.app` | Covers all preview branches without manual backend updates |
 | `vercel.json` rewrites | React Router needs all paths to serve `index.html` |
+| `pdf-parse@1.1.1` not v2 | v2 breaks CommonJS import; v1.1.1 is stable |
+| Sidebar as fixed drawer on mobile | Native app feel — overlay + swipe-close |
+| White-circle logo for favicon | Readable on Chrome's light grey tab background |
 
 ---
 
-## 🐛 Known Issues & Troubleshooting
+## 🐛 Troubleshooting
 
 | Issue | Fix |
-|-------|-----|
-| White page on load | Check browser console for missing lucide-react exports |
-| `Failed to parse resume` | Make sure `pdf-parse` is version `1.1.1` exactly |
-| Email rate limit (Supabase) | Disable "Confirm email" in Supabase Auth settings |
-| CORS error in production | Add your Vercel domain to `backend/server.js` CORS array |
-| Profile not saving | Run both SQL scripts in Supabase SQL Editor |
-| Port already in use | Kill old dev server: `taskkill /F /IM node.exe` (Windows) |
+|---|---|
+| `ERR_NAME_NOT_RESOLVED` on login | Supabase URL in Vercel env vars doesn't match your project. Go to Supabase → Settings → API and copy the exact URL |
+| `Failed to fetch` in production | Check `VITE_BACKEND_URL` in Vercel env vars points to your Render URL (not localhost) |
+| Profile saves but doesn't reflect | Run the SQL `alter table` update policy migration; verify Supabase RLS policies |
+| History shows "0 saved" | Run `supabase_analyses.sql` in Supabase SQL Editor first |
+| Forgot password email not arriving | Add `https://yourdomain.vercel.app/**` to Supabase → Auth → URL Configuration → Redirect URLs |
+| Cold start delay (~15–30s) | Render Free tier sleeps after 15 min. Upgrade to Starter ($7/mo) to eliminate |
+| CORS error in production | Render backend `server.js` allows `*.vercel.app` by default. If using a custom domain, add it to the CORS origins array |
+| White page on load | Check browser console for missing environment variables (`VITE_SUPABASE_URL` undefined) |
+| `Failed to parse resume` | Ensure `pdf-parse` is exactly version `1.1.1` in `backend/package.json` |
+| Port already in use | `taskkill /F /IM node.exe` (Windows) or `pkill node` (Mac/Linux) |
 
 ---
 
