@@ -44,7 +44,7 @@ export default function History() {
   return (
     <div style={{ maxWidth:'860px', margin:'0 auto', paddingTop:'1rem' }}>
       <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'2rem' }}>
+        <div className="history-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'2rem', flexWrap:'wrap', gap:'0.5rem' }}>
           <h1 style={{ fontSize:'2.2rem', marginBottom:0 }}>Analysis History</h1>
           <span style={{ color:'var(--text-secondary)', fontSize:'0.9rem' }}>{analyses.length} saved</span>
         </div>
@@ -99,7 +99,7 @@ export default function History() {
                         <motion.div initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}}
                           style={{ borderTop:'1px solid var(--border-color)', padding:'1.5rem', overflow:'hidden' }}>
                           {r.fitReason && <p style={{ marginBottom:'1rem', lineHeight:1.6, padding:'1rem', background:'rgba(16,185,129,0.07)', borderRadius:'8px', fontSize:'0.9rem' }}>{r.fitReason}</p>}
-                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1.25rem' }}>
+                          <div className="history-detail-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1.25rem' }}>
                             <div>
                               <div style={{ fontSize:'0.78rem', fontWeight:700, color:'var(--success)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'0.5rem' }}>✓ Pros</div>
                               {(r.pros||[]).map((p,i) => <div key={i} style={{ fontSize:'0.85rem', color:'var(--text-secondary)', marginBottom:'0.3rem' }}>• {p}</div>)}
@@ -125,7 +125,15 @@ export default function History() {
           </div>
         )}
       </motion.div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @media (max-width: 640px) {
+          .history-header { flex-direction: column; align-items: flex-start !important; }
+          .history-detail-grid { grid-template-columns: 1fr !important; }
+          .history-row-header { padding: 0.85rem 1rem !important; gap: 0.65rem !important; }
+          .history-score-circle { width: 36px !important; height: 36px !important; font-size: 0.85rem !important; }
+        }
+      `}</style>
     </div>
   );
 }

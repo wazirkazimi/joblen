@@ -170,13 +170,87 @@ const Home = () => {
           />
           {error && <div style={{ color:'var(--danger)', fontSize:'0.88rem', marginBottom:'1rem', display:'flex', alignItems:'center', gap:'0.4rem' }}><AlertTriangle size={15}/> {error}</div>}
           <div style={{ display:'flex', justifyContent:'flex-end' }}>
-            <button className="btn btn-primary" onClick={handleAnalyze} disabled={isAnalyzing || !jdText.trim()} style={{ opacity: (!jdText.trim() || isAnalyzing) ? 0.5 : 1 }}>
-              {isAnalyzing
-                ? <><div style={{ width:'16px', height:'16px', border:'2px solid white', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/> Analyzing…</>
-                : <><Search size={16}/> Analyze JD</>}
-            </button>
+            <motion.button
+              className="btn btn-primary"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing || !jdText.trim()}
+              whileHover={!isAnalyzing && jdText.trim() ? { scale:1.04 } : {}}
+              whileTap={!isAnalyzing && jdText.trim() ? { scale:0.97 } : {}}
+              style={{ opacity: (!jdText.trim() || isAnalyzing) ? 0.6 : 1, position:'relative', overflow:'hidden', minWidth:'150px' }}
+            >
+              {isAnalyzing ? (
+                <span style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                  <motion.img
+                    src="/logo-light.png"
+                    alt="analyzing"
+                    style={{ width:'22px', height:'22px', borderRadius:'5px' }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+                  />
+                  Analyzing…
+                </span>
+              ) : (
+                <span style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                  <Search size={16}/> Analyze JD
+                </span>
+              )}
+            </motion.button>
           </div>
         </div>
+
+        {/* ── Full-screen analyzing overlay ── */}
+        <AnimatePresence>
+          {isAnalyzing && (
+            <motion.div
+              key="analyzing-overlay"
+              initial={{ opacity:0 }}
+              animate={{ opacity:1 }}
+              exit={{ opacity:0 }}
+              style={{ position:'fixed', inset:0, zIndex:300, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'rgba(15,23,42,0.82)', backdropFilter:'blur(8px)' }}
+            >
+              {/* Outer pulse rings */}
+              <div style={{ position:'relative', width:'140px', height:'140px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                {[0,1,2].map(i => (
+                  <motion.div key={i}
+                    style={{ position:'absolute', borderRadius:'50%', border:'2px solid rgba(59,130,246,0.4)' }}
+                    animate={{ scale:[1, 1.8 + i*0.4], opacity:[0.6, 0] }}
+                    transition={{ duration: 1.8, repeat:Infinity, delay: i * 0.5, ease:'easeOut' }}
+                    initial={{ width:'80px', height:'80px' }}
+                  />
+                ))}
+                {/* Logo in centre */}
+                <motion.div
+                  style={{ width:'80px', height:'80px', borderRadius:'18px', overflow:'hidden', boxShadow:'0 0 30px rgba(59,130,246,0.5)', zIndex:1 }}
+                  animate={{ scale:[1, 1.06, 1] }}
+                  transition={{ duration:1.4, repeat:Infinity, ease:'easeInOut' }}
+                >
+                  <img src="/logo.png" alt="JobLens" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                </motion.div>
+              </div>
+
+              {/* Animated status text */}
+              <motion.div
+                style={{ marginTop:'2rem', textAlign:'center' }}
+                animate={{ opacity:[0.5,1,0.5] }}
+                transition={{ duration:1.8, repeat:Infinity }}
+              >
+                <div style={{ fontWeight:700, fontSize:'1.1rem', color:'var(--text-primary)', marginBottom:'0.4rem' }}>Analyzing your fit…</div>
+                <div style={{ color:'var(--text-secondary)', fontSize:'0.88rem' }}>Matching skills · Checking preferences · Drafting email</div>
+              </motion.div>
+
+              {/* Progress bar */}
+              <motion.div
+                style={{ width:'220px', height:'3px', background:'rgba(255,255,255,0.1)', borderRadius:'9999px', marginTop:'1.5rem', overflow:'hidden' }}
+              >
+                <motion.div
+                  style={{ height:'100%', background:'linear-gradient(90deg,var(--accent-primary),var(--accent-secondary))', borderRadius:'9999px' }}
+                  animate={{ x:['-100%','100%'] }}
+                  transition={{ duration:1.4, repeat:Infinity, ease:'easeInOut' }}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Results */}
         <AnimatePresence>

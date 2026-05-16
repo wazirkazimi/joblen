@@ -293,12 +293,13 @@ p {
 
 /* ─── RESPONSIVE / MOBILE ──────────────────────────────────────────────────── */
 
-/* Hamburger button — hidden on desktop */
+/* Hamburger button — hidden on desktop, top-RIGHT on mobile */
 .sidebar-toggle {
   display: none;
   position: fixed;
   top: 1rem;
-  left: 1rem;
+  right: 1rem;
+  left: auto;
   z-index: 200;
   background: var(--bg-card);
   border: 1px solid var(--border-color);

@@ -73,6 +73,15 @@ export default function Profile() {
 
   return (
     <div style={{ maxWidth:'920px', margin:'0 auto', fontFamily:'Inter,system-ui,sans-serif', paddingTop:'1rem' }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .profile-grid { grid-template-columns: 1fr !important; }
+          .profile-completeness-row { flex-direction: column !important; gap: 0.5rem !important; }
+        }
+        @media (max-width: 480px) {
+          .profile-grid { gap: 0.75rem !important; }
+        }
+      `}</style>
       <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}>
 
         {/* Header */}
@@ -96,7 +105,7 @@ export default function Profile() {
           </div>
         )}
 
-        <div style={{ display:'grid', gridTemplateColumns:'340px 1fr', gap:'1.25rem', alignItems:'start' }}>
+        <div className="profile-grid" style={{ display:'grid', gridTemplateColumns:'340px 1fr', gap:'1.25rem', alignItems:'start' }}>
 
           {/* LEFT column */}
           <div>
@@ -286,3 +295,16 @@ export default function Profile() {
     </div>
   );
 }
+
+/* Injected styles for mobile responsiveness */
+const _ProfileStyles = () => (
+  <style>{`
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 768px) {
+      .profile-grid { grid-template-columns: 1fr !important; }
+    }
+  `}</style>
+);
