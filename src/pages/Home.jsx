@@ -127,7 +127,7 @@ const Home = () => {
       <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}>
 
         {/* Header */}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'2rem', flexWrap:'wrap', gap:'1rem' }}>
+        <div className="dash-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'2rem', flexWrap:'wrap', gap:'1rem' }}>
           <h1 style={{ fontSize:'2.2rem', marginBottom:0 }}>Dashboard</h1>
           <div style={{ textAlign:'right' }}>
             <div style={{ fontSize:'0.82rem', color:'var(--text-secondary)', marginBottom:'4px' }}>Profile Completeness</div>
@@ -183,8 +183,7 @@ const Home = () => {
           {result && (
             <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} className="glass-panel" style={{ overflow:'hidden' }}>
 
-              {/* Score header */}
-              <div style={{ padding:'2rem', borderBottom:'1px solid var(--border-color)', display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:'1rem' }}>
+              <div className="result-header" style={{ padding:'2rem', borderBottom:'1px solid var(--border-color)', display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:'1rem' }}>
                 <div>
                   <h2 style={{ marginBottom:'0.5rem' }}>{result.role} <span style={{ color:'var(--text-secondary)', fontWeight:400 }}>@</span> {result.company}</h2>
                   <div style={{ display:'flex', gap:'0.75rem', flexWrap:'wrap' }}>
@@ -378,7 +377,48 @@ const Home = () => {
           )}
         </AnimatePresence>
       </motion.div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+
+        /* Dashboard mobile fixes */
+        @media (max-width: 640px) {
+          /* Score header stacks */
+          .result-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+          /* Pros & flags grid collapses */
+          .pros-flags-grid {
+            grid-template-columns: 1fr !important;
+          }
+          /* Pref row grid collapses */
+          .pref-row-grid {
+            grid-template-columns: 1fr !important;
+          }
+          /* Section padding shrinks */
+          .result-section-body {
+            padding: 0.75rem 1rem 1.5rem !important;
+          }
+          .result-section-header {
+            padding: 1rem !important;
+          }
+          /* Feedback buttons stack */
+          .feedback-btns {
+            flex-direction: column !important;
+          }
+          /* Skill tags smaller */
+          .skill-tag { font-size: 0.72rem !important; }
+
+          /* Dashboard header stacks */
+          .dash-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+          .dash-header > div:last-child {
+            text-align: left !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

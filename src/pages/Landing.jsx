@@ -140,7 +140,7 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer style={{ padding:'1.5rem 3rem', borderTop:'1px solid var(--border-color)', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'0.5rem' }}>
+      <footer style={{ padding:'1.5rem 1.5rem', borderTop:'1px solid var(--border-color)', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'0.5rem' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', fontSize:'0.85rem', color:'var(--text-secondary)' }}>
         <Logo size={18} showText={false} />  JobLens — Built for freshers
         </div>
@@ -148,6 +148,25 @@ const Landing = () => {
           © {new Date().getFullYear()} JobLens. All rights reserved.
         </div>
       </footer>
+
+      {/* ── Responsive overrides ── */}
+      <style>{`
+        @media (max-width: 768px) {
+          .landing-nav    { padding: 1rem 1.25rem !important; }
+          .landing-hero   { padding: 3rem 1.25rem 2rem !important; }
+          .landing-section{ padding: 3rem 1.25rem !important; }
+          .landing-grid-4 { grid-template-columns: 1fr 1fr !important; }
+          .landing-grid-6 { grid-template-columns: 1fr !important; }
+          .landing-footer { padding: 1.25rem !important; flex-direction: column !important; text-align: center !important; }
+          .landing-cta    { padding: 3rem 1.25rem !important; }
+          .landing-trust  { gap: 0.75rem !important; }
+        }
+        @media (max-width: 480px) {
+          .landing-nav-btns .btn-secondary-nav { display: none; }
+          .landing-grid-4 { grid-template-columns: 1fr !important; }
+          .landing-hero   { padding: 2.5rem 1rem 1.5rem !important; }
+        }
+      `}</style>
     </div>
   );
 };
