@@ -11,7 +11,11 @@ const https = require('https');
 const rateLimit = require('express-rate-limit');
 const templates = require('./templates');
 const generateImage = require('./generate');
+const { supabase } = require("./config/supabase");
+const adminRouter = require("./routes/admin");
+const templatesRouter = require("./routes/templates");
 require('dotenv').config();
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -42,6 +46,10 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Mount modular routes
+app.use("/api/admin", adminRouter);
+app.use("/api/templates", templatesRouter);
 
 // Configure Cloudinary
 cloudinary.config({
@@ -175,6 +183,12 @@ const generateDailyLimiter = rateLimit({
 // POST /api/generate (Multipart Form Data)
 // Receives image and templateId, performs Sharp PNG resize/padding, and processes using OpenAI Image edit
 app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('image'), async (req, res, next) => {
+  let templateRecord = null;
+  let inputCloudinaryUrl = null;
+  const whatsappLink = process.env.WHATSAPP_LINK || 'https://wa.me/919999999999';
+  const userIp = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
+  const userAgent = req.headers["user-agent"] || "unknown";
+
   try {
     const { templateId, aspectRatio } = req.body;
     const currentAspectRatio = aspectRatio || "1:1";
@@ -186,29 +200,69 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
       return res.status(400).json({ error: 'templateId is required' });
     }
 
-    // Lookup template
-    const template = templates.find(t => t.id === templateId);
-    if (!template) {
-      return res.status(404).json({ error: 'Template not found' });
+    // 1. Fetch template from Supabase
+    const { data: dbTemplate, error: templateError } = await supabase
+      .from("templates")
+      .select("*")
+      .eq("id", templateId)
+      .single();
+
+    if (templateError || !dbTemplate) {
+      return res.status(400).json({ error: "Choose a valid style template." });
+    }
+    templateRecord = dbTemplate;
+
+    // Check if template is active
+    if (!templateRecord.is_active) {
+      return res.status(400).json({ error: "This style template is currently disabled." });
     }
 
-    const whatsappLink = process.env.WHATSAPP_LINK || 'https://wa.me/919999999999';
+    // 2. Fetch app settings limits from Supabase
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("app_settings")
+      .select("*");
 
-    // Hard usage cap safeguard check
-    const maxGenerations = parseInt(process.env.OPENAI_MAX_GENERATIONS || '180', 10);
-    const dailyMaxGenerations = parseInt(process.env.OPENAI_DAILY_MAX_GENERATIONS || '30', 10);
-    const todayStr = new Date().toISOString().split('T')[0];
-    const currentUsage = readUsage();
-    const todayCount = currentUsage.daily[todayStr] || 0;
+    const settings = {};
+    (settingsData || []).forEach(row => {
+      settings[row.key] = row.value;
+    });
 
-    if (currentUsage.totalGenerations >= maxGenerations || todayCount >= dailyMaxGenerations) {
-      return res.status(403).json({
-        error: "MVP image generation limit reached. Please contact us on WhatsApp.",
+    const maintenanceMode = settings["maintenance_mode"] === "true";
+    const maxTotal = parseInt(settings["max_total_generations"] || "180", 10);
+    const maxDaily = parseInt(settings["max_daily_generations"] || "30", 10);
+    const estCost = parseFloat(settings["estimated_cost_per_image_usd"] || "0.025");
+
+    if (maintenanceMode) {
+      return res.status(503).json({
+        error: "System is undergoing maintenance. Please try again later or contact us on WhatsApp.",
         whatsappLink
       });
     }
 
-    // 1. Convert uploaded image buffer to correct aspect ratio sizing using sharp
+    // Compute counts from generations table
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [
+      { count: totalCount, error: errTotalCount },
+      { count: todayCount, error: errTodayCount }
+    ] = await Promise.all([
+      supabase.from("generations").select("*", { count: "exact", head: true }).eq("generation_status", "success"),
+      supabase.from("generations").select("*", { count: "exact", head: true }).eq("generation_status", "success").gte("created_at", todayStart.toISOString())
+    ]);
+
+    if (errTotalCount || errTodayCount) {
+      throw new Error("Failed to evaluate budget caps");
+    }
+
+    if (totalCount >= maxTotal || todayCount >= maxDaily) {
+      return res.status(403).json({
+        error: "Generation limit reached. Please contact us on WhatsApp.",
+        whatsappLink
+      });
+    }
+
+    // 3. Convert uploaded image buffer to correct aspect ratio sizing using sharp
     let pngBuffer;
     if (currentAspectRatio === "9:16") {
       // Resize fitting 576x1024, composite centered onto transparent 1024x1024 canvas
@@ -265,14 +319,24 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Retrieve dynamic cropped/processed mock output
-      const outputUrl = await getMockImageAsBase64(template.previewOutput, currentAspectRatio);
+      const outputUrl = await getMockImageAsBase64(templateRecord.output_preview_url, currentAspectRatio);
 
       // Increment local usage counts for mock testing
-      const usage = readUsage();
-      usage.totalGenerations = (usage.totalGenerations || 0) + 1;
-      usage.daily[todayStr] = (usage.daily[todayStr] || 0) + 1;
-      usage.lastUpdated = new Date().toISOString();
-      writeUsage(usage);
+      await Promise.all([
+        supabase.from("generations").insert([{
+          template_id: templateRecord.id,
+          template_name: templateRecord.name,
+          input_image_url: null,
+          output_image_url: outputUrl,
+          user_ip: userIp,
+          user_agent: userAgent,
+          generation_status: "success",
+          estimated_cost_usd: estCost
+        }]),
+        supabase.from("templates")
+          .update({ usage_count: (templateRecord.usage_count || 0) + 1 })
+          .eq("id", templateRecord.id)
+      ]);
 
       return res.json({ 
         outputUrl,
@@ -281,22 +345,32 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
     }
 
     console.log(`Live Mode generate: Uploading padded input PNG to Cloudinary...`);
-    const inputCloudinaryUrl = await uploadBufferToCloudinary(pngBuffer, "auralux-inputs");
+    inputCloudinaryUrl = await uploadBufferToCloudinary(pngBuffer, "auralux-inputs");
 
-    // Construct master prompt securely from hardcoded template details on the server
+    // Construct master prompt securely from template details in the database
     const masterPrefix = "Using the uploaded jewellery or gemstone as the primary subject, preserve the overall appearance, color, gemstone type, and visible design details as closely as possible. ";
     const masterSuffix = " Do not create a completely different jewellery piece. Only modify styling, background, lighting, composition, and environment.";
-    const fullPrompt = `${masterPrefix}${template.prompt}${masterSuffix}`;
+    const fullPrompt = `${masterPrefix}${templateRecord.prompt}${masterSuffix}`;
 
     console.log(`Live Mode generate: Calling OpenAI Image edit for template: ${templateId}, ratio: ${currentAspectRatio}`);
     const outputUrl = await generateImage(inputCloudinaryUrl, fullPrompt, currentAspectRatio);
 
-    // Save usage tracking after successful image generation
-    const updatedUsage = readUsage();
-    updatedUsage.totalGenerations = (updatedUsage.totalGenerations || 0) + 1;
-    updatedUsage.daily[todayStr] = (updatedUsage.daily[todayStr] || 0) + 1;
-    updatedUsage.lastUpdated = new Date().toISOString();
-    writeUsage(updatedUsage);
+    // Save usage tracking after successful image generation in Supabase
+    await Promise.all([
+      supabase.from("generations").insert([{
+        template_id: templateRecord.id,
+        template_name: templateRecord.name,
+        input_image_url: inputCloudinaryUrl,
+        output_image_url: outputUrl,
+        user_ip: userIp,
+        user_agent: userAgent,
+        generation_status: "success",
+        estimated_cost_usd: estCost
+      }]),
+      supabase.from("templates")
+        .update({ usage_count: (templateRecord.usage_count || 0) + 1 })
+        .eq("id", templateRecord.id)
+    ]);
 
     res.json({ 
       outputUrl,
@@ -304,6 +378,23 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
     });
   } catch (error) {
     console.error('Generate error:', error);
+
+    // Log failure event
+    try {
+      await supabase.from("generations").insert([{
+        template_id: templateRecord ? templateRecord.id : null,
+        template_name: templateRecord ? templateRecord.name : "Unknown",
+        input_image_url: inputCloudinaryUrl,
+        user_ip: userIp,
+        user_agent: userAgent,
+        generation_status: "failed",
+        error_message: error.message || "Unknown error occurred",
+        estimated_cost_usd: 0
+      }]);
+    } catch (dbLogErr) {
+      console.error("Failed to log failure event in database:", dbLogErr);
+    }
+
     next(error);
   }
 });

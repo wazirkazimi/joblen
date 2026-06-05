@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FAF9F6;
+    color: #1A1A1A;
+  }
+}
+
+@keyframes progress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+.animate-progress-bar {
+  animation: progress 12s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes marquee-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.animate-marquee-right {
+  display: flex;
+  width: max-content;
+  animation: marquee-right 80s linear infinite;
+}
+
+@keyframes scanline {
+  0%, 100% { left: 0%; }
+  50% { left: 100%; }
+}
+
+@keyframes scanreveal {
+  0%, 100% { clip-path: inset(0 100% 0 0); }
+  50% { clip-path: inset(0 0% 0 0); }
+}
+
+.animate-scanline {
+  animation: scanline 4s ease-in-out infinite;
+}
+
+.animate-scanreveal {
+  animation: scanreveal 4s ease-in-out infinite;
+}
+
+.perspective-container {
+  perspective: 1200px;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 99px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.4);
+}
+
+@keyframes slide1 {
+  0%, 20% { opacity: 1; z-index: 10; }
+  25%, 95% { opacity: 0; z-index: 0; }
+  100% { opacity: 1; z-index: 10; }
+}
+@keyframes slide2 {
+  0%, 20% { opacity: 0; z-index: 0; }
+  25%, 45% { opacity: 1; z-index: 10; }
+  50%, 100% { opacity: 0; z-index: 0; }
+}
+@keyframes slide3 {
+  0%, 45% { opacity: 0; z-index: 0; }
+  50%, 70% { opacity: 1; z-index: 10; }
+  75%, 100% { opacity: 0; z-index: 0; }
+}
+@keyframes slide4 {
+  0%, 70% { opacity: 0; z-index: 0; }
+  75%, 95% { opacity: 1; z-index: 10; }
+  100% { opacity: 0; z-index: 0; }
+}
+
+.animate-carousel-slide-1 {
+  animation: slide1 16s infinite;
+}
+.animate-carousel-slide-2 {
+  animation: slide2 16s infinite;
+}
+.animate-carousel-slide-3 {
+  animation: slide3 16s infinite;
+}
+.animate-carousel-slide-4 {
+  animation: slide4 16s infinite;
+}
