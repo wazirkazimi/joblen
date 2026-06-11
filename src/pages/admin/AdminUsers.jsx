@@ -330,7 +330,7 @@ export default function AdminUsers() {
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Stated Goals</span>
-                      <span style={{ fontSize: '0.88rem' }}>{(selectedUser.profile_data?.goals || []).join(', ') || 'None'}</span>
+                      <span style={{ fontSize: '0.88rem' }}>{(Array.isArray(selectedUser.profile_data?.goals) ? selectedUser.profile_data.goals : []).join(', ') || 'None'}</span>
                     </div>
                   </div>
 
@@ -338,12 +338,12 @@ export default function AdminUsers() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Target Roles</span>
-                      <span style={{ fontSize: '0.88rem' }}>{(selectedUser.profile_data?.targetRoles || []).join(', ') || '-'}</span>
+                      <span style={{ fontSize: '0.88rem' }}>{(Array.isArray(selectedUser.profile_data?.targetRoles) ? selectedUser.profile_data.targetRoles : []).join(', ') || '-'}</span>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Work Types & locations</span>
                       <span style={{ fontSize: '0.88rem' }}>
-                        {(selectedUser.profile_data?.preferences?.workTypes || []).join(', ')} | {(selectedUser.profile_data?.preferences?.locations || []).join(', ')}
+                        {(Array.isArray(selectedUser.profile_data?.preferences?.workTypes) ? selectedUser.profile_data.preferences.workTypes : []).join(', ')} | {(Array.isArray(selectedUser.profile_data?.preferences?.locations) ? selectedUser.profile_data.preferences.locations : []).join(', ')}
                       </span>
                     </div>
                     <div>
@@ -353,10 +353,10 @@ export default function AdminUsers() {
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Skills & Tools</span>
                       <span style={{ fontSize: '0.82rem', color: '#10b981', display: 'block', wordBreak: 'break-word', marginTop: '0.2rem' }}>
-                        Skills: {(selectedUser.profile_data?.selectedSkills || []).join(', ') || '-'}
+                        Skills: {(Array.isArray(selectedUser.profile_data?.selectedSkills) ? selectedUser.profile_data.selectedSkills : []).join(', ') || '-'}
                       </span>
                       <span style={{ fontSize: '0.82rem', color: '#8b5cf6', display: 'block', wordBreak: 'break-word', marginTop: '0.2rem' }}>
-                        Tools: {[(selectedUser.profile_data?.selectedTools || []).join(', '), (selectedUser.profile_data?.selectedAiTools || []).join(', ')].filter(Boolean).join(', ') || '-'}
+                        Tools: {[(Array.isArray(selectedUser.profile_data?.selectedTools) ? selectedUser.profile_data.selectedTools : []).join(', '), (Array.isArray(selectedUser.profile_data?.selectedAiTools) ? selectedUser.profile_data.selectedAiTools : []).join(', ')].filter(Boolean).join(', ') || '-'}
                       </span>
                     </div>
                   </div>

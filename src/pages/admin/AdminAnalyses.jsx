@@ -370,7 +370,7 @@ export default function AdminAnalyses() {
                         </div>
                       </div>
                     </div>
-                    {selectedAnalysis.feedback_reasons?.length > 0 && (
+                    {Array.isArray(selectedAnalysis.feedback_reasons) && selectedAnalysis.feedback_reasons.length > 0 && (
                       <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                         <strong>Feedback Reasons:</strong> {selectedAnalysis.feedback_reasons.join(', ')}
                       </div>

@@ -50,7 +50,7 @@ export default function AdminFeedback() {
       // Compile common reasons frequency map
       const reasonsMap = {};
       feedbacks.forEach(f => {
-        (f.feedback_reasons || []).forEach(r => {
+        (Array.isArray(f.feedback_reasons) ? f.feedback_reasons : []).forEach(r => {
           if (!reasonsMap[r]) {
             reasonsMap[r] = { name: r, Count: 0, type: f.feedback_decision };
           }
@@ -116,7 +116,7 @@ export default function AdminFeedback() {
       f.result?.role || '-',
       f.result?.company || '-',
       f.feedback_decision === 'yes' ? 'Applied (Yes)' : 'Skipped (No)',
-      (f.feedback_reasons || []).join('; '),
+      (Array.isArray(f.feedback_reasons) ? f.feedback_reasons : []).join('; '),
       new Date(f.created_at).toISOString().split('T')[0]
     ]);
 
@@ -327,7 +327,7 @@ export default function AdminFeedback() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                          {(f.feedback_reasons || []).map((chip, idx) => (
+                          {(Array.isArray(f.feedback_reasons) ? f.feedback_reasons : []).map((chip, idx) => (
                             <span 
                               key={idx} 
                               className="badge" 
@@ -342,7 +342,7 @@ export default function AdminFeedback() {
                               {chip}
                             </span>
                           ))}
-                          {(f.feedback_reasons || []).length === 0 && (
+                          {(Array.isArray(f.feedback_reasons) ? f.feedback_reasons : []).length === 0 && (
                             <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontStyle: 'italic' }}>None selected</span>
                           )}
                         </div>
