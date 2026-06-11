@@ -24,6 +24,26 @@ const PORT = process.env.PORT || 5000;
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const upload = multer({ storage: multer.memoryStorage() });
 
+// ─── HEALTH & GROQ STATUS CHECK ──────────────────────────────────────────────
+app.get('/api/health-check', async (req, res) => {
+  try {
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error('GROQ_API_KEY is not defined.');
+    }
+    const start = Date.now();
+    await groq.chat.completions.create({
+      messages: [{ role: 'user', content: 'Ping' }],
+      model: 'llama-3.1-8b-instant',
+      max_tokens: 2,
+    });
+    const latency = Date.now() - start;
+    res.json({ status: 'ok', groq: 'healthy', latencyMs: latency });
+  } catch (err) {
+    console.error('Groq health check error:', err);
+    res.status(500).json({ status: 'error', groq: 'unhealthy', error: err.message });
+  }
+});
+
 // ─── RESUME PARSER ───────────────────────────────────────────────────────────
 app.post('/api/parse-resume', upload.single('resume'), async (req, res) => {
   try {

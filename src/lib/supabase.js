@@ -8,3 +8,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export const logError = async (errorMessage, userId = null) => {
+  try {
+    const { error } = await supabase.from('error_logs').insert({
+      error: errorMessage,
+      user_id: userId || null,
+      timestamp: new Date().toISOString()
+    });
+    if (error) console.error('Supabase logError response error:', error);
+  } catch (e) {
+    console.error('Failed to log error to Supabase:', e);
+  }
+};

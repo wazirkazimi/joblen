@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, CheckCircle, Search, Mail, MessageSquare, AlertTriangle, FileText, ChevronDown, ChevronUp, MapPin, DollarSign, Briefcase, Users, ThumbsUp, ThumbsDown, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { supabase, logError } from '../lib/supabase';
 import BACKEND_URL from '../lib/config';
 
 function calcCompleteness(p) {
@@ -99,6 +99,7 @@ const Home = () => {
       }
     } catch (e) {
       setError(e.message || 'Something went wrong. Is the backend running?');
+      logError(e.message || 'Analysis fetch failed', user?.id);
     } finally { setIsAnalyzing(false); }
   };
 

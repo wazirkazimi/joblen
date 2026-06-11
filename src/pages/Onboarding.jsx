@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle, ChevronLeft, UploadCloud, SkipForward, FileTex
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BACKEND_URL from '../lib/config';
+import { logError } from '../lib/supabase';
 import Step1Goals   from './onboarding/Step1Goals';
 import Step2Profile from './onboarding/Step2Profile';
 import Step3Clubs   from './onboarding/Step3Clubs';
@@ -69,7 +70,7 @@ export default function Onboarding() {
   const [saveError, setSaveError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const navigate = useNavigate();
-  const { saveProfile } = useAuth();
+  const { saveProfile, user } = useAuth();
 
   const [formData, setFormData] = useState({
     goals: [],
@@ -103,8 +104,14 @@ export default function Onboarding() {
           links: { ...prev.links, resumeText: data.rawText || '' },
         }));
         setStep(1);
-      } else { alert('Failed to parse. Try again or fill manually.'); }
-    } catch { alert('Backend not reachable — make sure it is running on port 5000.'); }
+      } else { 
+        alert('Failed to parse. Try again or fill manually.'); 
+        logError('Resume parser response not OK', user?.id);
+      }
+    } catch (err) { 
+      alert('Backend not reachable — make sure it is running on port 5000.'); 
+      logError('Resume parse fetch failed: ' + (err.message || 'unreachable'), user?.id);
+    }
     finally { setIsParsing(false); }
   };
 

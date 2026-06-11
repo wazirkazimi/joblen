@@ -46,7 +46,12 @@ export const AuthProvider = ({ children }) => {
     const { error } = await supabase
       .from('profiles')
       .upsert(
-        { user_id: user.id, profile_data: profileData, updated_at: new Date().toISOString() },
+        { 
+          user_id: user.id, 
+          email: user.email, 
+          profile_data: profileData, 
+          updated_at: new Date().toISOString() 
+        },
         { onConflict: 'user_id' }
       );
     if (!error) {
