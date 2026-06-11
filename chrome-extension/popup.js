@@ -11,6 +11,10 @@ const viewLoading = document.getElementById("view-loading");
 const viewResults = document.getElementById("view-results");
 
 const btnOpenWeb = document.getElementById("btn-open-web");
+const btnUploadResume = document.getElementById("btn-upload-resume");
+const inputResumeFile = document.getElementById("input-resume-file");
+const btnUseDefault = document.getElementById("btn-use-default");
+
 const btnResync = document.getElementById("btn-resync");
 const btnAnalyze = document.getElementById("btn-analyze");
 const btnBack = document.getElementById("btn-back");
@@ -58,22 +62,145 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Attempt to auto-sync if active tab is JobLens web app
+  // Attempt to scan ALL tabs to auto-sync from any background JobLens website tab
+  chrome.tabs.query({}, (allTabs) => {
+    const joblensTab = allTabs.find(t => t.url && (t.url.includes("localhost:517") || t.url.includes("joblen.vercel.app")));
+    if (joblensTab) {
+      trySyncFromTab(joblensTab);
+    }
+  });
+
+  // Auto-scrape active tab if profile is ready
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const activeTab = tabs[0];
-    if (activeTab && (activeTab.url.includes("localhost") || activeTab.url.includes("joblen.vercel.app"))) {
-      trySyncFromTab(activeTab);
-    }
-    
-    // Auto-scrape active tab if profile is ready
-    if (cachedProfile && activeTab) {
-      scrapeJobFromTab(activeTab);
+    if (activeTab) {
+      chrome.storage.local.get("userProfile", (result) => {
+        if (result.userProfile) {
+          scrapeJobFromTab(activeTab);
+        }
+      });
     }
   });
 
   // Event Listeners
   btnOpenWeb.addEventListener("click", () => {
     chrome.tabs.create({ url: "https://joblen.vercel.app/dashboard" });
+  });
+
+  // Direct Resume PDF upload handler
+  btnUploadResume.addEventListener("click", () => {
+    inputResumeFile.click();
+  });
+
+  inputResumeFile.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const serverUrl = apiUrlInput.value.trim() || "http://localhost:5000";
+    chrome.storage.local.set({ apiUrl: serverUrl });
+
+    loaderTitle.innerText = "Parsing Resume PDF...";
+    showView(viewLoading);
+
+    try {
+      const formData = new FormData();
+      formData.append("resume", file);
+
+      const res = await fetch(`${serverUrl}/api/parse-resume`, {
+        method: "POST",
+        body: formData
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to parse resume PDF. Is the server running?");
+      }
+
+      const parsedData = await res.json();
+      
+      // Map parsed fields into unified userProfile schema
+      const profile = {
+        profile: {
+          name: parsedData.profile?.name || "Uploaded Resume",
+          city: parsedData.profile?.city || "Remote",
+          education: parsedData.profile?.education || "Degree",
+          gradYear: parsedData.profile?.gradYear || "2026",
+          employed: "No - actively looking"
+        },
+        experiences: parsedData.experiences || [],
+        selectedSkills: (parsedData.skills || "").split(",").map(s => s.trim()).filter(Boolean),
+        selectedTools: (parsedData.tools || "").split(",").map(t => t.trim()).filter(Boolean),
+        selectedAiTools: [],
+        links: {
+          resumeText: parsedData.rawText || ""
+        }
+      };
+
+      cachedProfile = profile;
+      chrome.storage.local.set({ userProfile: cachedProfile });
+      updateSyncStatus(true);
+      updateProfileDisplay(cachedProfile);
+      showView(viewReady);
+
+      // Trigger scraping on current page
+      chrome.tabs.query({ active: true, currentWindow: true }, (activeTabs) => {
+        if (activeTabs[0]) {
+          scrapeJobFromTab(activeTabs[0]);
+        }
+      });
+
+    } catch (err) {
+      console.error("Resume upload parsing failed:", err);
+      alert("Resume Parsing Failed: " + err.message + "\nMake sure your JobLens backend server is running on " + serverUrl);
+      showView(viewSync);
+    }
+  });
+
+  // Demo Profile click handler
+  btnUseDefault.addEventListener("click", () => {
+    const demoProfile = {
+      profile: {
+        name: "Demo Candidate",
+        city: "Bangalore, India",
+        education: "B.Tech, Computer Science, IIT Bombay",
+        gradYear: "2026",
+        employed: "No - actively looking"
+      },
+      goals: ["Finding internships / first job", "Switching roles"],
+      experiences: [
+        {
+          company: "Coding Club, IIT Bombay",
+          role: "Lead Frontend Developer",
+          duration: "Jul 2024 - Present",
+          metric: "Built open source portfolio tool used by 400+ students, increasing registration by 35%",
+          types: ["Tech/Dev", "Product"]
+        }
+      ],
+      selectedSkills: ["JavaScript", "TypeScript", "React", "Next.js", "HTML/CSS", "Git", "Node.js", "SQL"],
+      selectedTools: ["VS Code", "GitHub", "Vercel", "Slack", "Figma"],
+      selectedAiTools: ["ChatGPT", "Claude", "Cursor AI"],
+      targetRoles: ["Frontend Engineer", "Full Stack Engineer"],
+      preferences: {
+        workTypes: ["Full-time", "Internship", "Remote"],
+        locations: ["Bangalore, India", "Remote - India"],
+        stipend: "₹25,000/mo or ₹8 LPA",
+        availability: "Immediately",
+        hardNos: "Unpaid roles, micromanaging environment"
+      },
+      personalitySignal: "I built a customized portfolio generator that helped 400+ peers showcase their coding metrics."
+    };
+
+    cachedProfile = demoProfile;
+    chrome.storage.local.set({ userProfile: cachedProfile });
+    updateSyncStatus(true);
+    updateProfileDisplay(cachedProfile);
+    showView(viewReady);
+
+    // Trigger scraping on current page
+    chrome.tabs.query({ active: true, currentWindow: true }, (activeTabs) => {
+      if (activeTabs[0]) {
+        scrapeJobFromTab(activeTabs[0]);
+      }
+    });
   });
 
   btnResync.addEventListener("click", () => {

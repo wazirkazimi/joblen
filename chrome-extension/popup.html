@@ -34,13 +34,27 @@
         </div>
         <h2>Connect Your Profile</h2>
         <p class="view-description">
-          JobLens matches job descriptions against your actual skills, experience, and preferences. Open the web app to connect.
+          JobLens matches job descriptions against your actual skills, experience, and preferences. Sync your account or upload a resume below.
         </p>
-        <button id="btn-open-web" class="btn btn-primary">
+        
+        <button id="btn-open-web" class="btn btn-primary w-full" style="margin-bottom: 0.75rem;">
           Open JobLens & Sync Account
         </button>
-        <div class="alternative-sync">
-          <p>Or configure manually:</p>
+
+        <div style="text-align: center; margin: 0.5rem 0; font-size: 0.75rem; color: var(--text-secondary); font-weight: 600;">
+          — OR —
+        </div>
+
+        <input type="file" id="input-resume-file" accept=".pdf" style="display: none;">
+        <button id="btn-upload-resume" class="btn btn-secondary w-full" style="margin-bottom: 0.5rem;">
+          Upload Resume PDF
+        </button>
+        <button id="btn-use-default" class="btn btn-secondary w-full">
+          Use Demo Profile
+        </button>
+
+        <div class="alternative-sync" style="margin-top: 1.5rem;">
+          <p>Or configure backend URL:</p>
           <input type="text" id="api-url" placeholder="API Server (http://localhost:5000)" value="http://localhost:5000" class="input-field">
         </div>
       </div>
