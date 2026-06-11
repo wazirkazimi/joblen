@@ -287,8 +287,8 @@ export default function AdminDashboard() {
                 recentActivity.map((activity) => (
                   <tr key={activity.id}>
                     <td style={{ fontWeight: 500 }}>{activity.email || 'Anonymous'}</td>
-                    <td>{activity.result?.company || '—'}</td>
-                    <td>{activity.result?.role || '—'}</td>
+                    <td>{activity.result?.company || '-'}</td>
+                    <td>{activity.result?.role || '-'}</td>
                     <td>
                       <span className={`badge ${activity.result?.fitScore >= 7 ? 'badge-success' : activity.result?.fitScore >= 4 ? 'badge-warning' : 'badge-danger'}`} style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem' }}>
                         {activity.result?.fitScore ?? '?'} / 10

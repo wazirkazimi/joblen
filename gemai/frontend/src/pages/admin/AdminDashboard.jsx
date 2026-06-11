@@ -7,7 +7,8 @@ import {
   DollarSign, 
   TrendingUp,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  Sparkles
 } from "lucide-react";
 import { adminApi } from "../../api/adminApi";
 
@@ -58,27 +59,29 @@ export default function AdminDashboard() {
 
   const statCards = [
     { label: "Total Generations", value: data.totalGenerations, icon: History, color: "text-[#FFCE00]" },
-    { label: "Generations Today", value: data.generationsToday, icon: TrendingUp, color: "text-blue-400" },
-    { label: "Generations (Month)", value: data.generationsThisMonth, icon: BarChart3, color: "text-indigo-400" },
-    { label: "Active Templates", value: data.totalActiveTemplates, icon: Layers, color: "text-emerald-400" },
+    { label: "Generations Today", value: data.generationsToday, icon: TrendingUp, color: "text-blue-450" },
+    { label: "Free Generations (Total)", value: data.totalFreeGenerations || 0, icon: Sparkles, color: "text-purple-400" },
+    { label: "Free Generations (Today)", value: data.freeGenerationsToday || 0, icon: TrendingUp, color: "text-teal-400" },
     { label: "Estimated Spend (Total)", value: `$${data.estimatedTotalSpend.toFixed(2)}`, icon: DollarSign, color: "text-amber-400" },
     { label: "Estimated Spend (Today)", value: `$${data.estimatedSpendToday.toFixed(2)}`, icon: DollarSign, color: "text-orange-400" },
+    { label: "Remaining Budget (Max $5)", value: `$${(data.remainingBudget ?? 5.0).toFixed(2)}`, icon: DollarSign, color: "text-red-400" },
+    { label: "Most Used Free Template", value: data.mostUsedFreeTemplate || "N/A", icon: Layers, color: "text-emerald-450" },
   ];
 
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Overview Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
           return (
-            <div key={idx} className="bg-zinc-900/30 border border-[#27272A] rounded-xl p-6 flex items-center justify-between">
+            <div key={idx} className="bg-zinc-900/30 border border-[#27272A] rounded-xl p-5 flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{card.label}</span>
-                <p className="text-2xl font-black text-white">{card.value}</p>
+                <p className="text-xl font-black text-white truncate max-w-[150px]" title={card.value}>{card.value}</p>
               </div>
-              <div className={`p-3 rounded-lg bg-zinc-950/80 border border-zinc-800 ${card.color}`}>
-                <Icon className="h-5 w-5" />
+              <div className={`p-2.5 rounded-lg bg-zinc-950/80 border border-zinc-805 shrink-0 ${card.color}`}>
+                <Icon className="h-4.5 w-4.5" />
               </div>
             </div>
           );
@@ -216,6 +219,83 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+      </div>
+
+      {/* New Section: Top Visitors & Top IPs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Top Visitors */}
+        <div className="bg-zinc-900/20 border border-[#27272A] rounded-xl p-6 flex flex-col">
+          <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-300 mb-6">
+            Top Visitor IDs (Free Users)
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#27272A] text-zinc-500 text-[10px] uppercase font-bold tracking-wider pb-3">
+                  <th className="pb-3">Visitor ID</th>
+                  <th className="pb-3 text-right">Generations Count</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#27272A]/40 text-xs">
+                {!data.topVisitorIds || data.topVisitorIds.length === 0 ? (
+                  <tr>
+                    <td colSpan="2" className="py-4 text-center text-zinc-500">
+                      No visitor activity logged yet.
+                    </td>
+                  </tr>
+                ) : (
+                  data.topVisitorIds.map((visitor, idx) => (
+                    <tr key={idx} className="hover:bg-zinc-900/10 transition-colors">
+                      <td className="py-3 font-semibold text-zinc-300 select-all">
+                        {visitor.visitor_id}
+                      </td>
+                      <td className="py-3 text-right font-black text-[#FFCE00]">
+                        {visitor.count}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Top IPs */}
+        <div className="bg-zinc-900/20 border border-[#27272A] rounded-xl p-6 flex flex-col">
+          <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-300 mb-6">
+            Top IP Addresses
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#27272A] text-zinc-500 text-[10px] uppercase font-bold tracking-wider pb-3">
+                  <th className="pb-3">IP Address</th>
+                  <th className="pb-3 text-right">Generations Count</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#27272A]/40 text-xs">
+                {!data.topIpAddresses || data.topIpAddresses.length === 0 ? (
+                  <tr>
+                    <td colSpan="2" className="py-4 text-center text-zinc-500">
+                      No IP logs recorded yet.
+                    </td>
+                  </tr>
+                ) : (
+                  data.topIpAddresses.map((ip, idx) => (
+                    <tr key={idx} className="hover:bg-zinc-900/10 transition-colors">
+                      <td className="py-3 font-semibold text-zinc-350 select-all">
+                        {ip.ip_address}
+                      </td>
+                      <td className="py-3 text-right font-black text-blue-400">
+                        {ip.count}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

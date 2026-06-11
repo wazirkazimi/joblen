@@ -109,7 +109,7 @@ export default function Onboarding() {
         logError('Resume parser response not OK', user?.id);
       }
     } catch (err) { 
-      alert('Backend not reachable — make sure it is running on port 5000.'); 
+      alert('Backend not reachable - make sure it is running on port 5000.'); 
       logError('Resume parse fetch failed: ' + (err.message || 'unreachable'), user?.id);
     }
     finally { setIsParsing(false); }
@@ -156,7 +156,7 @@ export default function Onboarding() {
               <div style={{ textAlign:'center', padding:'1.5rem 0' }}>
                 <h1 style={{ fontSize:'2rem', marginBottom:'0.5rem' }}>Welcome to JobLens 👋</h1>
                 <p className="mb-8" style={{ maxWidth:'460px', margin:'0 auto 2rem' }}>
-                  Upload your resume and we'll auto-fill everything for you in seconds. Or fill manually — up to you!
+                  Upload your resume and we'll auto-fill everything for you in seconds. Or fill manually - up to you!
                 </p>
                 <div style={{ background:'rgba(139,92,246,0.08)', border:'2px dashed rgba(139,92,246,0.4)', borderRadius:'12px', padding:'2.5rem', marginBottom:'1.5rem' }}>
                   <FileText size={48} color="var(--accent-secondary)" style={{ marginBottom:'1rem' }} />
@@ -183,7 +183,7 @@ export default function Onboarding() {
             {step === 7 && (
               <div style={{ maxHeight:'430px', overflowY:'auto', paddingRight:'6px' }}>
                 <h3 className="mb-2" style={{ color:'var(--accent-secondary)' }}>Proof of Work *</h3>
-                <p className="mb-5" style={{ fontSize:'0.9rem' }}>Resume text is used in every AI draft — required. Links are optional but help.</p>
+                <p className="mb-5" style={{ fontSize:'0.9rem' }}>Resume text is used in every AI draft - required. Links are optional but help.</p>
                 <div className="input-group">
                   <label className="input-label">Paste Resume Text *</label>
                   {fieldErrors['links.resumeText'] && <p style={{color:'var(--danger)',fontSize:'0.82rem',marginBottom:'0.3rem'}}>⚠️ {fieldErrors['links.resumeText']}</p>}
@@ -192,7 +192,7 @@ export default function Onboarding() {
                     value={formData.links?.resumeText||''}
                     onChange={e=>setFormData({...formData,links:{...formData.links,resumeText:e.target.value}})} />
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
+                <div className="links-grid" style={{ display:'grid', gap:'1rem' }}>
                   {[['Portfolio / Website','portfolio','https://yoursite.com'],['GitHub','github','https://github.com/'],['LinkedIn URL','linkedin','https://linkedin.com/in/'],['Notion / Case Study','otherDoc','https://notion.so/']].map(([lbl,key,ph]) => (
                     <div className="input-group" key={key}>
                       <label className="input-label">{lbl}</label>
@@ -207,8 +207,8 @@ export default function Onboarding() {
             {step === 8 && (
               <div>
                 <h3 className="mb-2" style={{ color:'var(--accent-secondary)' }}>Your Personality Signal 🌟 *</h3>
-                <p className="mb-2" style={{ fontSize:'0.9rem' }}>The one thing you're most proud of — context, what you did, result.</p>
-                <p className="mb-5" style={{ fontSize:'0.82rem', color:'var(--accent-primary)' }}>This gets used in every cold email & cover letter — it's what makes you sound human, not generic.</p>
+                <p className="mb-2" style={{ fontSize:'0.9rem' }}>The one thing you're most proud of - context, what you did, result.</p>
+                <p className="mb-5" style={{ fontSize:'0.82rem', color:'var(--accent-primary)' }}>This gets used in every cold email & cover letter - it's what makes you sound human, not generic.</p>
                 {fieldErrors.personalitySignal && <p style={{color:'var(--danger)',fontSize:'0.82rem',marginBottom:'0.5rem'}}>⚠️ {fieldErrors.personalitySignal}</p>}
                 <textarea className="input-field"
                   style={{ minHeight:'200px', fontSize:'1.05rem', lineHeight:1.65, borderColor: fieldErrors.personalitySignal ? 'var(--danger)' : '' }}
@@ -229,7 +229,7 @@ export default function Onboarding() {
         <div style={{ marginTop:'2rem', paddingTop:'1.25rem', borderTop:'1px solid var(--border-color)' }}>
           {Object.keys(fieldErrors).length > 0 && (
             <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:'8px', padding:'0.75rem 1rem', marginBottom:'1rem', fontSize:'0.85rem', color:'var(--danger)' }}>
-              ⚠️ Some fields are highlighted above — please fill them before continuing.
+              ⚠️ Some fields are highlighted above - please fill them before continuing.
             </div>
           )}
           {saveError && <p style={{ color:'var(--danger)', fontSize:'0.85rem', marginBottom:'0.75rem', textAlign:'center' }}>⚠️ {saveError}</p>}
@@ -249,7 +249,21 @@ export default function Onboarding() {
           </div>
         </div>
       </div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .links-grid, .onboarding-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        @media (max-width: 640px) {
+          .links-grid, .onboarding-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .onboarding-grid > div,
+          .onboarding-grid > section {
+            grid-column: auto !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

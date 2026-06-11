@@ -26,7 +26,7 @@ async function checkData() {
       console.error('   → Go to: https://supabase.com/dashboard/project/soyrrlmvypbreobhwtez/sql/new');
     } else if (status === 401 || error.code === 'PGRST301') {
       console.log('⚠️  Table exists but RLS blocks unauthenticated reads (this is correct and secure!)');
-      console.log('   → Data can only be read when a user is logged in — working as intended ✅');
+      console.log('   → Data can only be read when a user is logged in - working as intended ✅');
     } else {
       console.error('❌ Error querying table:', error.message, '| Code:', error.code);
     }

@@ -57,7 +57,7 @@ app.post('/api/parse-resume', upload.single('resume'), async (req, res) => {
 RESUME TEXT:
 ${resumeText}
 
-Return ONLY a JSON object matching this exact schema — no extra text:
+Return ONLY a JSON object matching this exact schema - no extra text:
 {
   "profile": {
     "name": "Full name",
@@ -69,7 +69,7 @@ Return ONLY a JSON object matching this exact schema — no extra text:
     {
       "company": "Organization, Club, or Project Name",
       "role": "Role or Position Title",
-      "duration": "e.g. Jan 2022 – Present",
+      "duration": "e.g. Jan 2022 - Present",
       "metric": "ONE specific metric or outcome. If none found, extract the most impressive responsibility instead.",
       "types": ["Categorize into one or more of: Growth/Marketing, Product, Tech/Dev, Content, Operations, Design, Research, Community, Sales, Finance"]
     }
@@ -106,12 +106,12 @@ app.post('/api/analyze', async (req, res) => {
     const p  = u.profile      || {};
     const pr = u.preferences  || {};
     const exps = (u.experiences || []).map(e =>
-      `• ${e.role} @ ${e.company} (${e.duration?.computed || e.duration || 'unknown duration'}) — ${e.metric || 'no metric'} [${(e.types||[]).join(', ')}]`
+      `• ${e.role} @ ${e.company} (${e.duration?.computed || e.duration || 'unknown duration'}) - ${e.metric || 'no metric'} [${(e.types||[]).join(', ')}]`
     ).join('\n');
 
     const prompt = `You are an expert career advisor, talent analyst, and recruiter with 15+ years of experience.
 
-Analyze how well this candidate fits the job description below. Be brutally honest but kind. Use their ACTUAL profile data — not generic advice.
+Analyze how well this candidate fits the job description below. Be brutally honest but kind. Use their ACTUAL profile data - not generic advice.
 
 ══════════════════════════════════════════
 CANDIDATE PROFILE
@@ -157,12 +157,12 @@ ${jobDescription}
 INSTRUCTIONS
 ══════════════════════════════════════════
 1. Read the JD carefully. Extract: role, company, salary/stipend mentioned, work mode (remote/hybrid/onsite), location, required skills, culture signals.
-2. Compare EACH against the candidate's profile. Be specific — name actual matching and mismatching skills.
+2. Compare EACH against the candidate's profile. Be specific - name actual matching and mismatching skills.
 3. Check preference alignment: Does the JD's salary match their minimum? Does location match? Does work type match? Does culture match their Hard No's?
 4. Check if the company in the JD matches or is similar to their target companies. Note if it's a dream company match.
-5. Give a fitScore from 1–10 based on real skill+preference overlap. Do NOT inflate scores.
-6. Write drafts using their actual name, metrics, and personality signal — not placeholders.
-7. If feedback history is provided, factor it in — if user has rejected similar roles before, note the pattern.
+5. Give a fitScore from 1-10 based on real skill+preference overlap. Do NOT inflate scores.
+6. Write drafts using their actual name, metrics, and personality signal - not placeholders.
+7. If feedback history is provided, factor it in - if user has rejected similar roles before, note the pattern.
 
 Return ONLY this JSON (no markdown, no extra text):
 {
@@ -171,7 +171,7 @@ Return ONLY this JSON (no markdown, no extra text):
   "fitScore": <1-10 integer>,
   "probability": "High" | "Medium" | "Stretch",
   "fitReason": "2-3 sentences. Speak directly to candidate. Mention specific skills that match. Be honest about gaps. Use their name. Add 1-2 emojis naturally.",
-  "isSpam": <boolean — true if JD is vague, unpaid, or suspicious>,
+  "isSpam": <boolean - true if JD is vague, unpaid, or suspicious>,
   "spamReason": "Brief spam verdict",
   "pros": [
     "Specific strength that matches (name the skill/experience)",
@@ -204,13 +204,13 @@ Return ONLY this JSON (no markdown, no extra text):
     "culture": {
       "jdCultureSignals": "Key culture signals from JD (pace, team size, autonomy, etc.)",
       "candidateHardNos": "${pr.hardNos || 'None stated'}",
-      "redFlag": <boolean — true if JD culture clashes with Hard No's>,
+      "redFlag": <boolean - true if JD culture clashes with Hard No's>,
       "note": "Specific clash or alignment explanation"
     }
   },
   "companyMatch": {
-    "isDreamCompany": "<boolean — true if JD company matches or is very similar to candidate's target companies>",
-    "note": "e.g. 'Stripe is on your target list — this is a dream company match! 🎯' or 'Not on your list, but similar to X which you mentioned'"
+    "isDreamCompany": "<boolean - true if JD company matches or is very similar to candidate's target companies>",
+    "note": "e.g. 'Stripe is on your target list - this is a dream company match! 🎯' or 'Not on your list, but similar to X which you mentioned'"
   },
   "skillsGapAnalysis": {
     "strongMatches": ["Skills the candidate HAS that the JD explicitly needs"],
@@ -236,7 +236,7 @@ Return ONLY this JSON (no markdown, no extra text):
       model: 'llama-3.1-8b-instant',   // 10x faster than 70b, same JSON quality
       response_format: { type: 'json_object' },
       temperature: 0.3,
-      max_tokens: 2500,                  // cap output — prevents runaway generation
+      max_tokens: 2500,                  // cap output - prevents runaway generation
     });
 
     const raw = completion.choices[0]?.message?.content || '{}';

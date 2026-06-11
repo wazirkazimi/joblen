@@ -113,8 +113,8 @@ export default function AdminFeedback() {
     const headers = ['User Email', 'Job Role', 'Company', 'Decision', 'Reasons', 'Date'];
     const rows = filteredFeedback.map(f => [
       f.email || 'Anonymous',
-      f.result?.role || '—',
-      f.result?.company || '—',
+      f.result?.role || '-',
+      f.result?.company || '-',
       f.feedback_decision === 'yes' ? 'Applied (Yes)' : 'Skipped (No)',
       (f.feedback_reasons || []).join('; '),
       new Date(f.created_at).toISOString().split('T')[0]

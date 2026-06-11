@@ -63,7 +63,7 @@ export default function Step3Clubs({ formData, setFormData, errors = {} }) {
               </button>
             )}
 
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem',marginTop: exps.length > 1 ? '1.75rem' : 0 }}>
+            <div className="onboarding-grid" style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem',marginTop: exps.length > 1 ? '1.75rem' : 0 }}>
               <div className="input-group mb-1">
                 <label className="input-label">Org / Club / Project *</label>
                 <input className="input-field" placeholder="E.g. E-Cell, Open Source" value={exp.company} onChange={e=>update(idx,'company',e.target.value)}
@@ -82,7 +82,7 @@ export default function Step3Clubs({ formData, setFormData, errors = {} }) {
             </div>
 
             <div className="input-group mb-3">
-              <label className="input-label" style={{ color:'var(--warning)' }}>One metric / outcome * (required — quantify it!)</label>
+              <label className="input-label" style={{ color:'var(--warning)' }}>One metric / outcome * (required - quantify it!)</label>
               <input className="input-field" placeholder="E.g. Organised event for 500+ students, drove 20% growth"
                 value={exp.metric} onChange={e=>update(idx,'metric',e.target.value)}
                 style={{ borderColor: errors[`exp_${idx}_metric`] ? 'var(--danger)' : '' }} />

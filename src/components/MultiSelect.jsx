@@ -25,7 +25,7 @@ export const ChipSelect = ({ options, selected = [], onChange, multi = true }) =
   );
 };
 
-/* Categorised chip grid — {label, options[]}[] */
+/* Categorised chip grid - {label, options[]}[] */
 export const CategoryChips = ({ categories, selected = [], onChange, allowCustom = false, customLabel = 'Other' }) => {
   const [customVal, setCustomVal] = useState('');
   const toggle = (val) => onChange(selected.includes(val) ? selected.filter(v => v !== val) : [...selected, val]);

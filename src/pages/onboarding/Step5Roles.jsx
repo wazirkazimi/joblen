@@ -31,14 +31,14 @@ const INDUSTRY_CATS = [
   { label:'Consumer', options:['D2C / Retail','Gaming / Esports','Creator Economy','Social Media','OTT / Media'] },
   { label:'Vertical SaaS', options:['Edtech','Fintech','Healthtech / Biotech','Proptech / Real Estate','Legaltech','Insurtech','Agritech'] },
   { label:'Traditional', options:['FMCG','Logistics / Supply Chain','Manufacturing','Banking / NBFC','Consulting'] },
-  { label:'Company Stage', options:['Early-stage startup (0–10 people)','Seed stage (10–50)','Series A/B (50–200)','Large corp / MNC'] },
+  { label:'Company Stage', options:['Early-stage startup (0-10 people)','Seed stage (10-50)','Series A/B (50-200)','Large corp / MNC'] },
 ];
 
 export default function Step5Roles({ formData, setFormData, errors = {} }) {
   return (
     <div style={{ maxHeight:'460px', overflowY:'auto', paddingRight:'6px' }}>
       <h3 className="mb-2" style={{ color:'var(--accent-secondary)' }}>Target Roles & Industries *</h3>
-      <p className="mb-5" style={{ fontSize:'0.9rem' }}>Search or browse — select everything that interests you</p>
+      <p className="mb-5" style={{ fontSize:'0.9rem' }}>Search or browse - select everything that interests you</p>
 
       <section style={{ marginBottom:'2rem' }}>
         <div style={{ fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem',paddingBottom:'0.5rem',borderBottom:'1px solid var(--border-color)' }}>💼 Target Roles</div>

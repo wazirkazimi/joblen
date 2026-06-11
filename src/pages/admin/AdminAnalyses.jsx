@@ -138,10 +138,10 @@ export default function AdminAnalyses() {
     const rows = filteredAnalyses.map(a => [
       a.id,
       a.email || 'Anonymous',
-      a.result?.company || '—',
-      a.result?.role || '—',
-      a.result?.fitScore ?? '—',
-      a.result?.probability || '—',
+      a.result?.company || '-',
+      a.result?.role || '-',
+      a.result?.fitScore ?? '-',
+      a.result?.probability || '-',
       a.result?.isSpam ? 'Yes' : 'No',
       new Date(a.created_at).toISOString().split('T')[0]
     ]);
@@ -278,14 +278,14 @@ export default function AdminAnalyses() {
                       onClick={() => handleOpenDetails(a)}
                     >
                       <td style={{ fontWeight: 500 }}>{a.email || 'Anonymous'}</td>
-                      <td>{r.company || '—'}</td>
-                      <td>{r.role || '—'}</td>
+                      <td>{r.company || '-'}</td>
+                      <td>{r.role || '-'}</td>
                       <td>
                         <span className={`badge ${r.fitScore >= 7 ? 'badge-success' : r.fitScore >= 4 ? 'badge-warning' : 'badge-danger'}`} style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem' }}>
                           {r.fitScore ?? '?'} / 10
                         </span>
                       </td>
-                      <td>{r.probability || '—'}</td>
+                      <td>{r.probability || '-'}</td>
                       <td>
                         {r.isSpam ? (
                           <span style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: 600 }}>

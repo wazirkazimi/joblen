@@ -26,14 +26,14 @@ const Inp = ({ label, value, onChange, as='input', ...rest }) => (
 
 const GOALS_LIST = ['Finding internships / first job','Switching roles','Upskilling + job hunting together','Freelance / part-time work'];
 const WORK_TYPES = ['Full-time','Part-time','Internship','Contract','Freelance','Remote','Hybrid','On-site'];
-const AVAIL_LIST = ['Immediately','Within 2 weeks','Within a month','In 2–3 months','After 3 months'];
-const EMPLOYED_OPTS = ['No – actively looking','Yes – open to opportunities','Freelancing'];
+const AVAIL_LIST = ['Immediately','Within 2 weeks','Within a month','In 2-3 months','After 3 months'];
+const EMPLOYED_OPTS = ['No - actively looking','Yes - open to opportunities','Freelancing'];
 const ALL_SKILLS = ['HTML/CSS','JavaScript','TypeScript','React','Next.js','Vue.js','Node.js','Python','Java','Go','SQL','PostgreSQL','MongoDB','Docker','AWS','Figma','Adobe XD','SEO','Google Analytics','Excel','PowerPoint','Canva'];
 const ALL_TOOLS  = ['Notion','Airtable','Jira','Linear','Google Sheets','Tableau','VS Code','GitHub','Postman','Vercel','n8n','Zapier','Slack','Loom','Miro'];
 const ALL_AI     = ['ChatGPT','Claude','Gemini','Perplexity','GitHub Copilot','Cursor AI','Midjourney','DALL·E','Notion AI','ElevenLabs'];
 const ALL_ROLES  = ['Frontend Engineer','Backend Engineer','Full Stack Engineer','Mobile Developer','Product Manager','Product Intern','UI/UX Designer','Data Analyst','Growth Intern','Operations Intern','Business Development','Content Creator','Data Scientist','ML Engineer'];
 const ALL_INDUSTRIES = ['SaaS / B2B','Consumer Apps','AI / ML','Edtech','Fintech','Healthtech','D2C / E-commerce','Gaming / Esports','Climate / GreenTech','Early-stage startup','Series A/B','MNC / Large Corp'];
-const LOCATIONS  = ['Bangalore, India','Mumbai, India','Delhi NCR, India','Hyderabad, India','Pune, India','Chennai, India','Remote – India','Remote – Anywhere','Open to Relocation','Singapore','Dubai, UAE','London, UK'];
+const LOCATIONS  = ['Bangalore, India','Mumbai, India','Delhi NCR, India','Hyderabad, India','Pune, India','Chennai, India','Remote - India','Remote - Anywhere','Open to Relocation','Singapore','Dubai, UAE','London, UK'];
 
 // completeness
 const CHECKS = [p=>p?.goals?.length, p=>p?.profile?.name, p=>p?.profile?.city, p=>p?.profile?.education, p=>p?.selectedSkills?.length>=3, p=>p?.targetRoles?.length, p=>p?.industries?.length, p=>p?.preferences?.workTypes?.length, p=>p?.preferences?.locations?.length, p=>p?.preferences?.stipend, p=>p?.personalitySignal?.length>=20];
@@ -72,11 +72,15 @@ export default function Profile() {
   const save = (patch) => saveProfile({ ...profile, ...patch });
 
   return (
-    <div style={{ maxWidth:'920px', margin:'0 auto', fontFamily:'Inter,system-ui,sans-serif', paddingTop:'1rem' }}>
+    <div className="profile-container" style={{ maxWidth:'920px', margin:'0 auto', fontFamily:'Inter,system-ui,sans-serif', paddingTop:'1rem' }}>
       <style>{`
+        .profile-container {
+          padding: 1rem 2rem;
+        }
         @media (max-width: 768px) {
+          .profile-container { padding: 1rem !important; }
           .profile-grid { grid-template-columns: 1fr !important; }
-          .profile-completeness-row { flex-direction: column !important; gap: 0.5rem !important; }
+          .profile-completeness-row { flex-direction: column !important; align-items: flex-start !important; gap: 0.5rem !important; }
         }
         @media (max-width: 480px) {
           .profile-grid { gap: 0.75rem !important; }
@@ -93,7 +97,7 @@ export default function Profile() {
         {/* Completeness */}
         {missing.length > 0 && (
           <div style={{ background:'#fffbeb', border:'1px solid #fbbf24', borderRadius:'12px', padding:'1.25rem 1.5rem', marginBottom:'1.5rem' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.5rem' }}>
+            <div className="profile-completeness-row" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.5rem' }}>
               <span style={{ fontWeight:700, color:'#92400e', display:'flex', alignItems:'center', gap:'0.4rem' }}><AlertCircle size={16}/> {pct}% Complete</span>
             </div>
             <div style={{ height:'5px', background:'#fde68a', borderRadius:'9999px', overflow:'hidden', marginBottom:'0.6rem' }}>

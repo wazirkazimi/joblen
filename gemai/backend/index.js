@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -14,7 +15,6 @@ const generateImage = require('./generate');
 const { supabase } = require("./config/supabase");
 const adminRouter = require("./routes/admin");
 const templatesRouter = require("./routes/templates");
-require('dotenv').config();
 
 
 const app = express();
@@ -28,28 +28,131 @@ const allowedOrigins = [
   'http://localhost:3001'
 ];
 if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
+  const cleanedUrl = process.env.FRONTEND_URL.trim().replace(/\/$/, "");
+  allowedOrigins.push(cleanedUrl);
 }
+
+// Secure helper to validate request origins
+const isOriginAllowed = (origin) => {
+  if (!origin) return false;
+  const cleaned = origin.trim().replace(/\/$/, "");
+  if (process.env.FRONTEND_URL === "*") return true;
+  if (allowedOrigins.indexOf(cleaned) !== -1) return true;
+  
+  // Explicitly allow user's specific production and preview Vercel subdomains securely
+  if (cleaned === 'https://auralux-umber.vercel.app') return true;
+  if (/^https:\/\/auralux(?:-[a-z0-9-]+)?-wazirkazimi\.vercel\.app$/.test(cleaned)) return true;
+  
+  return false;
+};
 
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    
-    const isAllowed = allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.some(o => origin.startsWith(o));
-    if (isAllowed) {
+    if (!origin || isOriginAllowed(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
-  }
+  },
+  credentials: true
 }));
 
 app.use(express.json());
 
+// Healthcheck & Diagnostic endpoint
+app.get('/api/health', async (req, res) => {
+  // Set CORS headers so the browser can read it
+  const origin = req.headers.origin;
+  if (origin && isOriginAllowed(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  const diagnostics = {
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    env: {
+      NODE_ENV: process.env.NODE_ENV || "development",
+      PORT: PORT,
+      HAS_SUPABASE_URL: !!process.env.SUPABASE_URL,
+      SUPABASE_URL_PLACEHOLDER: process.env.SUPABASE_URL === "https://placeholder-supabase-url.supabase.co" || (process.env.SUPABASE_URL && process.env.SUPABASE_URL.includes('placeholder')),
+      HAS_SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      SUPABASE_KEY_PLACEHOLDER: process.env.SUPABASE_SERVICE_ROLE_KEY === "placeholder-key" || (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY.includes('placeholder')),
+      HAS_OPENAI_KEY: !!process.env.OPENAI_API_KEY,
+      OPENAI_KEY_MOCK: !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes('mock') || process.env.OPENAI_API_KEY.startsWith('sk-your'),
+      FRONTEND_URL: process.env.FRONTEND_URL || "not defined"
+    },
+    database: {
+      connected: false,
+      error: null
+    }
+  };
+
+  try {
+    const start = Date.now();
+    const { data, error } = await supabase.from("templates").select("id").limit(1);
+    const latency = Date.now() - start;
+
+    if (error) {
+      diagnostics.status = "degraded";
+      diagnostics.database.error = error.message || error;
+    } else {
+      diagnostics.database.connected = true;
+      diagnostics.database.latencyMs = latency;
+    }
+  } catch (err) {
+    diagnostics.status = "degraded";
+    diagnostics.database.error = err.message || err;
+  }
+
+  res.json(diagnostics);
+});
+
 // Mount modular routes
 app.use("/api/admin", adminRouter);
 app.use("/api/templates", templatesRouter);
+
+// Helper to resolve dynamic WhatsApp link from DB
+async function getWhatsappLink() {
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "whatsapp_number")
+      .maybeSingle();
+    if (data && data.value) {
+      const sanitized = data.value.replace(/\D/g, '');
+      if (sanitized) {
+        return `https://wa.me/${sanitized}`;
+      }
+    }
+  } catch (err) {
+    console.error("Error fetching whatsapp_number from database app_settings:", err);
+  }
+  return process.env.WHATSAPP_LINK || 'https://wa.me/918296608821';
+}
+
+// Public configurations route
+app.get("/api/settings", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("key, value");
+
+    if (error) throw error;
+
+    const settingsObj = {};
+    (data || []).forEach(row => {
+      settingsObj[row.key] = row.value;
+    });
+
+    return res.json({ settings: settingsObj });
+  } catch (error) {
+    console.error("Public fetch settings error:", error);
+    return res.status(500).json({ error: "Failed to fetch settings" });
+  }
+});
 
 // Configure Cloudinary
 cloudinary.config({
@@ -156,51 +259,74 @@ async function getMockImageAsBase64(imageUrl, aspectRatio) {
   }
 }
 
-// IP-based Rate Limiting (Max 3 requests per IP per hour)
+// IP-based Rate Limiting (Max 5 requests per IP per hour)
 const generateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3,
-  handler: (req, res) => {
+  max: 5,
+  handler: async (req, res) => {
+    const whatsappLink = await getWhatsappLink();
     return res.status(429).json({
-      error: "Too many generations. Please try again later or contact us on WhatsApp.",
-      whatsappLink: process.env.WHATSAPP_LINK || 'https://wa.me/919999999999'
-    });
-  }
-});
-
-// IP-based Rate Limiting (Max 10 requests per IP per day)
-const generateDailyLimiter = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 10,
-  handler: (req, res) => {
-    return res.status(429).json({
-      error: "Too many generations. Please try again later or contact us on WhatsApp.",
-      whatsappLink: process.env.WHATSAPP_LINK || 'https://wa.me/919999999999'
+      error: "Too many requests. Please try again later.",
+      whatsappLink
     });
   }
 });
 
 // POST /api/generate (Multipart Form Data)
 // Receives image and templateId, performs Sharp PNG resize/padding, and processes using OpenAI Image edit
-app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('image'), async (req, res, next) => {
+app.post('/api/generate', generateLimiter, upload.single('image'), async (req, res, next) => {
   let templateRecord = null;
   let inputCloudinaryUrl = null;
-  const whatsappLink = process.env.WHATSAPP_LINK || 'https://wa.me/919999999999';
+  let whatsappLink = process.env.WHATSAPP_LINK || 'https://wa.me/918296608821';
   const userIp = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
   const userAgent = req.headers["user-agent"] || "unknown";
 
+  const startTime = Date.now();
   try {
-    const { templateId, aspectRatio } = req.body;
+    const { templateId, aspectRatio, presentationMode = "keep_original" } = req.body;
     const currentAspectRatio = aspectRatio || "1:1";
     
+    let visitorId = req.body.visitorId || req.headers['x-visitor-id'];
+    if (!visitorId) {
+      visitorId = 'visitor_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+
+    // 1. Check maintenance mode first from settings
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("app_settings")
+      .select("*");
+
+    const settings = {};
+    (settingsData || []).forEach(row => {
+      settings[row.key] = row.value;
+    });
+
+    if (settings["whatsapp_number"]) {
+      const sanitized = settings["whatsapp_number"].replace(/\D/g, '');
+      if (sanitized) {
+        whatsappLink = `https://wa.me/${sanitized}`;
+      }
+    }
+
+    const maintenanceMode = settings["maintenance_mode"] === "true";
+    if (maintenanceMode) {
+      return res.status(503).json({
+        maintenance: true,
+        message: "AuraLux AI is temporarily in maintenance mode. Please try again later.",
+        whatsappLink
+      });
+    }
+
+    // 2. Check valid uploaded image
     if (!req.file) {
       return res.status(400).json({ error: 'No image file uploaded' });
     }
+
+    // 3. Check valid template
     if (!templateId) {
       return res.status(400).json({ error: 'templateId is required' });
     }
 
-    // 1. Fetch template from Supabase
     const { data: dbTemplate, error: templateError } = await supabase
       .from("templates")
       .select("*")
@@ -212,37 +338,85 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
     }
     templateRecord = dbTemplate;
 
-    // Check if template is active
     if (!templateRecord.is_active) {
       return res.status(400).json({ error: "This style template is currently disabled." });
     }
 
-    // 2. Fetch app settings limits from Supabase
-    const { data: settingsData, error: settingsError } = await supabase
-      .from("app_settings")
-      .select("*");
+    // 4. Check valid presentationMode & template compatibility
+    const allowedModes = ["keep_original", "set_into_ring", "set_into_pendant"];
+    if (!allowedModes.includes(presentationMode)) {
+      return res.status(400).json({ error: "Choose a valid presentation mode." });
+    }
 
-    const settings = {};
-    (settingsData || []).forEach(row => {
-      settings[row.key] = row.value;
-    });
+    if (templateRecord.allowed_presentation_modes_json) {
+      try {
+        const allowed = JSON.parse(templateRecord.allowed_presentation_modes_json);
+        if (Array.isArray(allowed) && !allowed.includes(presentationMode)) {
+          return res.status(400).json({ error: "This template is not available for the selected presentation type." });
+        }
+      } catch (e) {
+        console.error("Failed to parse allowed presentation modes:", e);
+      }
+    }
 
-    const maintenanceMode = settings["maintenance_mode"] === "true";
-    const maxTotal = parseInt(settings["max_total_generations"] || "180", 10);
-    const maxDaily = parseInt(settings["max_daily_generations"] || "30", 10);
-    const estCost = parseFloat(settings["estimated_cost_per_image_usd"] || "0.025");
+    // Calculate limit rules
+    const maxTotal = parseInt(settings["max_total_generations"] || "80", 10);
+    const hardMaxTotal = parseInt(process.env.HARD_MAX_TOTAL_GENERATIONS || "80", 10);
+    const effectiveMaxTotal = Math.min(maxTotal, hardMaxTotal);
 
-    if (maintenanceMode) {
-      return res.status(503).json({
-        error: "System is undergoing maintenance. Please try again later or contact us on WhatsApp.",
+    const maxDaily = parseInt(settings["max_daily_generations"] || "20", 10);
+    const hardMaxDaily = parseInt(process.env.HARD_MAX_DAILY_GENERATIONS || "20", 10);
+    const effectiveMaxDaily = Math.min(maxDaily, hardMaxDaily);
+
+    const ipLimit = parseInt(settings["max_generations_per_ip_per_day"] || "5", 10);
+    const hardIpLimit = parseInt(process.env.HARD_MAX_PER_IP_PER_DAY || "5", 10);
+    const effectiveIpLimit = Math.min(ipLimit, hardIpLimit);
+
+    const freeGenerationsLimit = parseInt(settings["free_generations_per_visitor"] || settings["free_generations_per_user"] || "3", 10);
+    const estCost = parseFloat(settings["estimated_cost_per_image_usd"] || "0.056");
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    // 5. Check visitor free generation limit
+    const { count: visitorCount, error: errVisitorCount } = await supabase
+      .from("generations")
+      .select("*", { count: "exact", head: true })
+      .eq("visitor_id", visitorId)
+      .eq("generation_status", "success");
+
+    if (errVisitorCount) {
+      throw new Error("Failed to evaluate visitor usage limit");
+    }
+
+    if (visitorCount >= freeGenerationsLimit) {
+      return res.json({
+        limitReached: true,
+        message: `You've used your ${freeGenerationsLimit} free generations. Contact us on WhatsApp to unlock more premium images.`,
         whatsappLink
       });
     }
 
-    // Compute counts from generations table
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // 6. Check IP daily limit
+    const { count: ipDailyCount, error: errIpDailyCount } = await supabase
+      .from("generations")
+      .select("*", { count: "exact", head: true })
+      .eq("ip_address", userIp)
+      .eq("generation_status", "success")
+      .gte("created_at", todayStart.toISOString());
 
+    if (errIpDailyCount) {
+      throw new Error("Failed to evaluate IP usage limit");
+    }
+
+    if (ipDailyCount >= effectiveIpLimit) {
+      return res.status(403).json({
+        error: "Generation limit reached. Please contact us on WhatsApp.",
+        whatsappLink
+      });
+    }
+
+    // Retrieve global counts
     const [
       { count: totalCount, error: errTotalCount },
       { count: todayCount, error: errTodayCount }
@@ -255,55 +429,20 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
       throw new Error("Failed to evaluate budget caps");
     }
 
-    if (totalCount >= maxTotal || todayCount >= maxDaily) {
+    // 7. Check daily global limit
+    if (todayCount >= effectiveMaxDaily) {
       return res.status(403).json({
         error: "Generation limit reached. Please contact us on WhatsApp.",
         whatsappLink
       });
     }
 
-    // 3. Convert uploaded image buffer to correct aspect ratio sizing using sharp
-    let pngBuffer;
-    if (currentAspectRatio === "9:16") {
-      // Resize fitting 576x1024, composite centered onto transparent 1024x1024 canvas
-      const resized = await sharp(req.file.buffer)
-        .resize(576, 1024, { fit: 'cover' })
-        .toBuffer();
-
-      pngBuffer = await sharp({
-        create: {
-          width: 1024,
-          height: 1024,
-          channels: 4,
-          background: { r: 0, g: 0, b: 0, alpha: 0 }
-        }
-      })
-      .composite([{ input: resized, top: 0, left: 224 }])
-      .png()
-      .toBuffer();
-    } else if (currentAspectRatio === "16:9") {
-      // Resize fitting 1024x576, composite centered onto transparent 1024x1024 canvas
-      const resized = await sharp(req.file.buffer)
-        .resize(1024, 576, { fit: 'cover' })
-        .toBuffer();
-
-      pngBuffer = await sharp({
-        create: {
-          width: 1024,
-          height: 1024,
-          channels: 4,
-          background: { r: 0, g: 0, b: 0, alpha: 0 }
-        }
-      })
-      .composite([{ input: resized, top: 224, left: 0 }])
-      .png()
-      .toBuffer();
-    } else {
-      // Default Square 1:1
-      pngBuffer = await sharp(req.file.buffer)
-        .resize(1024, 1024, { fit: 'cover' })
-        .png()
-        .toBuffer();
+    // 8. Check total global limit
+    if (totalCount >= effectiveMaxTotal) {
+      return res.status(403).json({
+        error: "Generation limit reached. Please contact us on WhatsApp.",
+        whatsappLink
+      });
     }
 
     const isMockMode = !process.env.OPENAI_API_KEY || 
@@ -314,7 +453,7 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
                        process.env.CLOUDINARY_API_KEY.startsWith('your_');
 
     if (isMockMode) {
-      console.log(`Mock Mode generate: Simulating OpenAI Image Edit for template: ${templateId}, ratio: ${currentAspectRatio}`);
+      console.log(`Mock Mode generate: Simulating OpenAI Image Generation for template: ${templateId}, ratio: ${currentAspectRatio}, mode: ${presentationMode}`);
       // Simulate 1.5s latency
       await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -331,7 +470,15 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
           user_ip: userIp,
           user_agent: userAgent,
           generation_status: "success",
-          estimated_cost_usd: estCost
+          estimated_cost_usd: estCost,
+          visitor_id: visitorId,
+          user_type: "free",
+          is_watermarked: true,
+          openai_model: "gpt-image-1-mini",
+          openai_quality: "medium",
+          openai_size: "1024x1024",
+          ip_address: userIp,
+          presentation_mode: presentationMode
         }]),
         supabase.from("templates")
           .update({ usage_count: (templateRecord.usage_count || 0) + 1 })
@@ -344,16 +491,21 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
       });
     }
 
-    console.log(`Live Mode generate: Uploading padded input PNG to Cloudinary...`);
-    inputCloudinaryUrl = await uploadBufferToCloudinary(pngBuffer, "auralux-inputs");
+    console.log(`Live Mode generate: Uploading raw input to Cloudinary...`);
+    inputCloudinaryUrl = await uploadBufferToCloudinary(req.file.buffer, "auralux-inputs");
 
-    // Construct master prompt securely from template details in the database
-    const masterPrefix = "Using the uploaded jewellery or gemstone as the primary subject, preserve the overall appearance, color, gemstone type, and visible design details as closely as possible. ";
-    const masterSuffix = " Do not create a completely different jewellery piece. Only modify styling, background, lighting, composition, and environment.";
-    const fullPrompt = `${masterPrefix}${templateRecord.prompt}${masterSuffix}`;
+    console.log(`Live Mode generate: Calling OpenAI Image Generator for template: ${templateId}, ratio: ${currentAspectRatio}, mode: ${presentationMode}`);
+    const { outputUrl, metadata } = await generateImage(
+      inputCloudinaryUrl, 
+      templateRecord.output_preview_url, 
+      templateRecord.prompt, 
+      currentAspectRatio,
+      true, // free user public watermarking
+      presentationMode
+    );
 
-    console.log(`Live Mode generate: Calling OpenAI Image edit for template: ${templateId}, ratio: ${currentAspectRatio}`);
-    const outputUrl = await generateImage(inputCloudinaryUrl, fullPrompt, currentAspectRatio);
+    const durationMs = Date.now() - startTime;
+    const loggedUserAgent = `${userAgent} (Model: ${metadata.model} | Quality: ${metadata.quality} | Size: ${metadata.size} | Inputs: ${metadata.inputImagesCount} | Duration: ${durationMs}ms)`;
 
     // Save usage tracking after successful image generation in Supabase
     await Promise.all([
@@ -363,9 +515,17 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
         input_image_url: inputCloudinaryUrl,
         output_image_url: outputUrl,
         user_ip: userIp,
-        user_agent: userAgent,
+        user_agent: loggedUserAgent,
         generation_status: "success",
-        estimated_cost_usd: estCost
+        estimated_cost_usd: metadata.estimatedCostUsd,
+        visitor_id: visitorId,
+        user_type: "free",
+        is_watermarked: metadata.isWatermarked,
+        openai_model: metadata.model,
+        openai_quality: metadata.quality,
+        openai_size: metadata.size,
+        ip_address: userIp,
+        presentation_mode: presentationMode
       }]),
       supabase.from("templates")
         .update({ usage_count: (templateRecord.usage_count || 0) + 1 })
@@ -378,6 +538,11 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
     });
   } catch (error) {
     console.error('Generate error:', error);
+    const durationMs = Date.now() - startTime;
+    const chatModel = process.env.OPENAI_CHAT_MODEL || "gpt-4o";
+    const loggedUserAgent = `${userAgent} (Model: ${chatModel} | Duration: ${durationMs}ms | FAILED)`;
+    const visitorId = req.body.visitorId || "unknown";
+    const presentationMode = req.body.presentationMode || "keep_original";
 
     // Log failure event
     try {
@@ -386,16 +551,145 @@ app.post('/api/generate', generateLimiter, generateDailyLimiter, upload.single('
         template_name: templateRecord ? templateRecord.name : "Unknown",
         input_image_url: inputCloudinaryUrl,
         user_ip: userIp,
-        user_agent: userAgent,
+        user_agent: loggedUserAgent,
         generation_status: "failed",
         error_message: error.message || "Unknown error occurred",
-        estimated_cost_usd: 0
+        estimated_cost_usd: 0,
+        visitor_id: visitorId,
+        user_type: "free",
+        is_watermarked: true,
+        openai_model: chatModel,
+        ip_address: userIp,
+        presentation_mode: presentationMode
       }]);
     } catch (dbLogErr) {
       console.error("Failed to log failure event in database:", dbLogErr);
     }
 
     next(error);
+  }
+});
+
+// GET /api/free-usage
+app.get('/api/free-usage', async (req, res) => {
+  try {
+    const visitorId = req.query.visitorId;
+    const userIp = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
+
+    const { data: settingsData } = await supabase
+      .from("app_settings")
+      .select("*");
+
+    const settings = {};
+    (settingsData || []).forEach(row => {
+      settings[row.key] = row.value;
+    });
+
+    const freeGenerationsLimit = parseInt(settings["free_generations_per_visitor"] || settings["free_generations_per_user"] || "3", 10);
+    const ipLimit = parseInt(settings["max_generations_per_ip_per_day"] || "5", 10);
+    const hardIpLimit = parseInt(process.env.HARD_MAX_PER_IP_PER_DAY || "5", 10);
+    const effectiveIpLimit = Math.min(ipLimit, hardIpLimit);
+
+    let visitorCount = 0;
+    if (visitorId) {
+      const { count, error } = await supabase
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("visitor_id", visitorId)
+        .eq("generation_status", "success");
+      if (!error) visitorCount = count || 0;
+    }
+
+    // IP Fallback protection check today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const { count: ipCount } = await supabase
+      .from("generations")
+      .select("*", { count: "exact", head: true })
+      .eq("ip_address", userIp)
+      .eq("generation_status", "success")
+      .gte("created_at", todayStart.toISOString());
+
+    let remaining = Math.max(0, freeGenerationsLimit - visitorCount);
+    // If IP daily limit is reached, set remaining to 0 for safety abuse block
+    if ((ipCount || 0) >= effectiveIpLimit) {
+      remaining = 0;
+    }
+
+    let whatsappLink = process.env.WHATSAPP_LINK || 'https://wa.me/918296608821';
+    if (settings["whatsapp_number"]) {
+      const sanitized = settings["whatsapp_number"].replace(/\D/g, '');
+      if (sanitized) {
+        whatsappLink = `https://wa.me/${sanitized}`;
+      }
+    }
+
+    const maintenanceMode = settings["maintenance_mode"] === "true";
+
+    return res.json({
+      used: visitorCount,
+      limit: freeGenerationsLimit,
+      remaining,
+      maintenanceMode,
+      whatsappLink
+    });
+  } catch (error) {
+    console.error("Error in free-usage endpoint:", error);
+    return res.status(500).json({ error: "Failed to compute usage" });
+  }
+});
+
+
+// GET /api/visitor-limits/:visitorId
+app.get('/api/visitor-limits/:visitorId', async (req, res) => {
+  try {
+    const { visitorId } = req.params;
+
+    // Fetch app settings limits from Supabase
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("app_settings")
+      .select("*");
+
+    const settings = {};
+    (settingsData || []).forEach(row => {
+      settings[row.key] = row.value;
+    });
+
+    const freeGenerationsLimit = parseInt(settings["free_generations_per_user"] || "3", 10);
+    const maintenanceMode = settings["maintenance_mode"] === "true";
+
+    // Count visitor's generations
+    const { count: visitorCount, error: errVisitorCount } = await supabase
+      .from("generations")
+      .select("*", { count: "exact", head: true })
+      .eq("visitor_id", visitorId)
+      .eq("generation_status", "success");
+
+    if (errVisitorCount) {
+      throw new Error("Failed to evaluate visitor usage limit");
+    }
+
+    const remaining = Math.max(0, freeGenerationsLimit - (visitorCount || 0));
+
+    let whatsappLink = process.env.WHATSAPP_LINK || 'https://wa.me/918296608821';
+    if (settings["whatsapp_number"]) {
+      const sanitized = settings["whatsapp_number"].replace(/\D/g, '');
+      if (sanitized) {
+        whatsappLink = `https://wa.me/${sanitized}`;
+      }
+    }
+
+    return res.json({
+      limit: freeGenerationsLimit,
+      used: visitorCount || 0,
+      remaining,
+      maintenanceMode,
+      whatsappLink
+    });
+  } catch (error) {
+    console.error("Error fetching visitor limits:", error);
+    return res.status(500).json({ error: "Failed to fetch visitor limits" });
   }
 });
 
@@ -426,16 +720,28 @@ app.get('/api/usage', (req, res) => {
 });
 
 // Global secure error handling middleware
-app.use((err, req, res, next) => {
+app.use(async (err, req, res, next) => {
   console.error("Global Handler Logged Error:", err);
+
+  // Set CORS headers for error responses
+  const origin = req.headers.origin;
+  if (origin && isOriginAllowed(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ error: 'CORS policy: Request origin is not allowed.' });
+  }
 
   if (err.message && (err.message.includes('file size') || err.message.includes('file type') || err.message.includes('LIMIT_FILE_SIZE') || err.message.includes('Only JPG, PNG, and WEBP'))) {
     return res.status(400).json({ error: err.message });
   }
 
+  const whatsappLink = await getWhatsappLink();
   res.status(500).json({ 
-    error: "Image generation failed. Please try again or contact us on WhatsApp.",
-    whatsappLink: process.env.WHATSAPP_LINK || 'https://wa.me/919999999999'
+    error: err.message || "Image generation failed. Please try again or contact us on WhatsApp.",
+    whatsappLink
   });
 });
 

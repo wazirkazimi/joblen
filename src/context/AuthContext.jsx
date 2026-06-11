@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
         .single();
       if (data) setProfile(data.profile_data);
     } catch (_) {
-      // table may not exist yet — treat as no profile, don't crash
+      // table may not exist yet - treat as no profile, don't crash
     } finally {
       setProfileChecked(true);
       setLoading(false);
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
         { onConflict: 'user_id' }
       );
     if (!error) {
-      // Force re-fetch to confirm DB state — this is what reflects in UI
+      // Force re-fetch to confirm DB state - this is what reflects in UI
       await fetchProfile(user.id);
     }
     return error;

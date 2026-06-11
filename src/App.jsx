@@ -103,10 +103,10 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={!user ? <AuthPage /> : <Navigate to={postAuthDest} replace />} />
 
-          {/* Onboarding — requires login */}
+          {/* Onboarding - requires login */}
           <Route path="/onboarding" element={!user ? <Navigate to="/auth" replace /> : <Onboarding />} />
 
-          {/* Protected — require login; if no profile show Dashboard anyway (profile page explains what's missing) */}
+          {/* Protected - require login; if no profile show Dashboard anyway (profile page explains what's missing) */}
           <Route path="/dashboard" element={!user ? <Navigate to="/auth" replace /> : <Home />} />
           <Route path="/profile"   element={!user ? <Navigate to="/auth" replace /> : <Profile />} />
           <Route path="/history"   element={!user ? <Navigate to="/auth" replace /> : <History />} />

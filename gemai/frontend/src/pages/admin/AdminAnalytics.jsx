@@ -14,7 +14,7 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { BarChart3, TrendingUp, HelpCircle, DollarSign } from "lucide-react";
+import { BarChart3, TrendingUp, HelpCircle, DollarSign, Activity, ExternalLink } from "lucide-react";
 import { adminApi } from "../../api/adminApi";
 
 const COLORS = ["#FFCE00", "#3B82F6", "#EF4444", "#10B981", "#8B5CF6", "#F59E0B"];
@@ -61,26 +61,63 @@ export default function AdminAnalytics() {
   const hasTemplateUsage = data.templateUsage && data.templateUsage.length > 0;
   const hasStatusData = data.statusBreakdown && data.statusBreakdown.length > 0;
 
+  const modeLabelMap = {
+    keep_original: "Keep Original",
+    set_into_ring: "Set into Ring",
+    set_into_pendant: "Set into Pendant"
+  };
+
+  const modeUsageData = Object.entries(data.generationsByMode || {}).map(([key, val]) => ({
+    name: modeLabelMap[key] || key,
+    value: val
+  }));
+
+  const modeCostData = Object.entries(data.costByMode || {}).map(([key, val]) => ({
+    name: modeLabelMap[key] || key,
+    cost: val
+  }));
+
+  const hasModeUsage = modeUsageData.some(item => item.value > 0);
+  const hasModeCost = modeCostData.some(item => item.cost > 0);
+
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Spend Analytics Summaries */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-zinc-900/30 border border-[#27272A] rounded-xl p-6 flex items-center justify-between">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Spend (Est.)</span>
-            <p className="text-3xl font-black text-[#FFCE00]">${data.estimatedSpendTotal.toFixed(2)}</p>
+            <p className="text-2xl font-black text-[#FFCE00]">${data.estimatedSpendTotal.toFixed(2)}</p>
           </div>
           <div className="p-3 rounded-lg bg-[#FFCE00]/5 border border-[#FFCE00]/10 text-[#FFCE00]">
-            <DollarSign className="h-6 w-6" />
+            <DollarSign className="h-5 w-5" />
           </div>
         </div>
         <div className="bg-zinc-900/30 border border-[#27272A] rounded-xl p-6 flex items-center justify-between">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Spend Today (Est.)</span>
-            <p className="text-3xl font-black text-[#FFCE00]">${data.estimatedSpendToday.toFixed(3)}</p>
+            <p className="text-2xl font-black text-[#FFCE00]">${data.estimatedSpendToday.toFixed(3)}</p>
           </div>
           <div className="p-3 rounded-lg bg-[#FFCE00]/5 border border-[#FFCE00]/10 text-[#FFCE00]">
-            <DollarSign className="h-6 w-6" />
+            <DollarSign className="h-5 w-5" />
+          </div>
+        </div>
+        <div className="bg-zinc-900/30 border border-[#27272A] rounded-xl p-6 flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Free Today</span>
+            <p className="text-2xl font-black text-purple-450">{data.freeGenerationsUsedToday || 0}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/10 text-purple-400">
+            <Activity className="h-5 w-5" />
+          </div>
+        </div>
+        <div className="bg-zinc-900/30 border border-[#27272A] rounded-xl p-6 flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Remaining Free Budget</span>
+            <p className="text-2xl font-black text-emerald-400">${(data.remainingFreeBudgetEstimate || 0).toFixed(2)}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-emerald-400">
+            <TrendingUp className="h-5 w-5" />
           </div>
         </div>
       </div>
@@ -194,7 +231,131 @@ export default function AdminAnalytics() {
             )}
           </div>
         </div>
+      </div>
 
+      {/* Presentation Mode Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Mode Usage Pie Chart */}
+        <div className="bg-zinc-900/20 border border-[#27272A] rounded-xl p-6">
+          <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-300 mb-6">
+            Presentation Mode Share of Usage
+          </h3>
+          <div className="h-80 w-full text-xs flex flex-col md:flex-row items-center justify-center gap-6">
+            {hasModeUsage ? (
+              <>
+                <div className="h-60 w-60">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={modeUsageData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                        nameKey="name"
+                      >
+                        {modeUsageData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: "#18181B", borderColor: "#27272A", color: "#F4F4F5" }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Legends */}
+                <div className="flex flex-col gap-3">
+                  {modeUsageData.map((row, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <div className="w-3.5 h-3.5 rounded" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white">{row.name}</span>
+                        <span className="text-[10px] text-zinc-500 font-semibold">{row.value} generations</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-zinc-650 text-xs">No presentation mode usages recorded.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Mode Cost Bar Chart */}
+        <div className="bg-zinc-900/20 border border-[#27272A] rounded-xl p-6">
+          <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-300 mb-6">
+            Cost Spend by Presentation Mode
+          </h3>
+          <div className="h-80 w-full text-xs">
+            {hasModeCost ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={modeCostData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272A" vertical={false} />
+                  <XAxis dataKey="name" stroke="#71717A" tickLine={false} axisLine={false} />
+                  <YAxis stroke="#71717A" tickLine={false} axisLine={false} tickFormatter={tick => `$${tick}`} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: "#18181B", borderColor: "#27272A", color: "#F4F4F5" }}
+                    itemStyle={{ color: "#FFCE00" }}
+                    formatter={value => [`$${parseFloat(value).toFixed(3)}`, "Cost"]}
+                  />
+                  <Bar dataKey="cost" name="Estimated Spend" fill="#FFCE00" radius={[4, 4, 0, 0]} barSize={36}>
+                    {modeCostData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-zinc-650 text-xs">No cost data recorded.</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Vercel Analytics Integration */}
+      <div className="bg-zinc-900/20 border border-[#27272A] rounded-xl p-6 mt-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#27272A]/40 pb-5 mb-6">
+          <div className="space-y-1">
+            <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
+              <Activity className="h-4.5 w-4.5 text-[#FFCE00]" />
+              Vercel Web Analytics Integration
+            </h3>
+            <p className="text-xs text-zinc-500">Real-time client traffic logs, page visits, audience geo-distribution, and page speed index performance.</p>
+          </div>
+          <span className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-black uppercase tracking-wider shrink-0 select-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Active & Receiving Events
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-zinc-950/40 border border-[#27272A]/60 rounded-lg p-4 space-y-2">
+            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Audience Metrics</h4>
+            <p className="text-xs text-zinc-500 leading-relaxed">Tracks unique visitors, page views, average session durations, and user retention cycles dynamically.</p>
+          </div>
+          <div className="bg-zinc-950/40 border border-[#27272A]/60 rounded-lg p-4 space-y-2">
+            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Source Channels</h4>
+            <p className="text-xs text-zinc-500 leading-relaxed">Captures top incoming referrers, custom campaigns, browser models, screen sizes, and country regions.</p>
+          </div>
+          <div className="bg-zinc-950/40 border border-[#27272A]/60 rounded-lg p-4 space-y-2">
+            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Core Web Vitals</h4>
+            <p className="text-xs text-zinc-500 leading-relaxed">Measures LCP (Largest Contentful Paint), FID (First Input Delay), and CLS (Cumulative Layout Shift) speeds.</p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end">
+          <a
+            href="https://vercel.com/wazirkazimi/auralux/analytics"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-[#FFCE00] hover:bg-[#FFCE00]/90 text-[#0F0F10] px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-[#FFCE00]/5 hover:scale-[1.01]"
+          >
+            Launch Vercel Analytics Dashboard <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
       </div>
     </div>
   );

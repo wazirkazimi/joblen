@@ -293,7 +293,7 @@ p {
 
 /* ─── RESPONSIVE / MOBILE ──────────────────────────────────────────────────── */
 
-/* Hamburger button — hidden on desktop, top-RIGHT on mobile */
+/* Hamburger button - hidden on desktop, top-RIGHT on mobile */
 .sidebar-toggle {
   display: none;
   position: fixed;

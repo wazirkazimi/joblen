@@ -70,11 +70,11 @@ export default function Step4Skills({ formData, setFormData, errors = {} }) {
   return (
     <div style={{ maxHeight:'470px', overflowY:'auto', paddingRight:'6px' }}>
       <h3 className="mb-2" style={{ color:'var(--accent-secondary)' }}>Skills & Tools *</h3>
-      <p className="mb-5" style={{ fontSize:'0.9rem' }}>Search from the list or type to add your own. Be honest — recruiters verify!</p>
+      <p className="mb-5" style={{ fontSize:'0.9rem' }}>Search from the list or type to add your own. Be honest - recruiters verify!</p>
 
       <Section emoji="💡" title="Hard Skills">
         {errors.selectedSkills && <p style={{color:'var(--danger)',fontSize:'0.82rem',marginBottom:'0.4rem'}}>⚠️ {errors.selectedSkills}</p>}
-        <p style={{ fontSize:'0.8rem', color:'var(--text-secondary)', marginBottom:'0.6rem' }}>Technical & domain-specific skills — search from the list or type a custom one</p>
+        <p style={{ fontSize:'0.8rem', color:'var(--text-secondary)', marginBottom:'0.6rem' }}>Technical & domain-specific skills - search from the list or type a custom one</p>
         <SearchableDropdown
           options={HARD_SKILLS}
           selected={formData.selectedSkills || []}

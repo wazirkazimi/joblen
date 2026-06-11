@@ -15,7 +15,7 @@ function calcDuration(sm, sy, em, ey, present) {
   const mo = months % 12;
   const dur = [yrs && `${yrs} yr${yrs>1?'s':''}`, mo && `${mo} mo`].filter(Boolean).join(' ') || '< 1 mo';
   const endLabel = present ? 'Present' : `${em?.slice(0,3)} ${ey}`;
-  return `${sm.slice(0,3)} ${sy} – ${endLabel} (${dur})`;
+  return `${sm.slice(0,3)} ${sy} - ${endLabel} (${dur})`;
 }
 
 export default function DurationPicker({ value = {}, onChange }) {

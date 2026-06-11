@@ -33,6 +33,8 @@ export default function AdminTemplates() {
   const [outputPreviewUrl, setOutputPreviewUrl] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
   const [isBeta, setIsBeta] = useState(false);
+  const [allowedModes, setAllowedModes] = useState(["keep_original", "set_into_ring", "set_into_pendant"]);
+  const [preferredMode, setPreferredMode] = useState("keep_original");
   
   // Upload states
   const [uploadingInput, setUploadingInput] = useState(false);
@@ -50,7 +52,7 @@ export default function AdminTemplates() {
       setTemplates(data.templates || []);
     } catch (err) {
       console.error(err);
-      setError("Failed to load templates from the database.");
+      setError(`Failed to load templates: ${err.message || "Please check connection."}`);
     } finally {
       setLoading(false);
     }
@@ -110,6 +112,12 @@ export default function AdminTemplates() {
         body: formData
       });
 
+      if (res.status === 401) {
+        localStorage.removeItem("gemify_admin_token");
+        window.location.href = "/admin/login?expired=true";
+        return;
+      }
+
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
       
@@ -138,6 +146,19 @@ export default function AdminTemplates() {
     setOutputPreviewUrl(template.output_preview_url);
     setIsFeatured(template.is_featured);
     setIsBeta(template.is_beta);
+    if (template.allowed_presentation_modes_json) {
+      try {
+        const parsed = JSON.parse(template.allowed_presentation_modes_json);
+        if (Array.isArray(parsed)) {
+          setAllowedModes(parsed);
+        }
+      } catch (e) {
+        setAllowedModes(["keep_original", "set_into_ring", "set_into_pendant"]);
+      }
+    } else {
+      setAllowedModes(["keep_original", "set_into_ring", "set_into_pendant"]);
+    }
+    setPreferredMode(template.preferred_presentation_mode || "keep_original");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -153,6 +174,8 @@ export default function AdminTemplates() {
     setOutputPreviewUrl("");
     setIsFeatured(false);
     setIsBeta(false);
+    setAllowedModes(["keep_original", "set_into_ring", "set_into_pendant"]);
+    setPreferredMode("keep_original");
   };
 
   const handleSubmit = async (e) => {
@@ -171,7 +194,9 @@ export default function AdminTemplates() {
       input_preview_url: inputPreviewUrl || null,
       output_preview_url: outputPreviewUrl,
       is_featured: isFeatured,
-      is_beta: isBeta
+      is_beta: isBeta,
+      allowed_presentation_modes_json: JSON.stringify(allowedModes),
+      preferred_presentation_mode: preferredMode
     };
 
     try {

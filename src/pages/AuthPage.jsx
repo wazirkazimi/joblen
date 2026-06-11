@@ -56,7 +56,7 @@ const AuthPage = () => {
           <p style={{ color:'var(--text-secondary)', lineHeight:1.65, marginBottom:'2rem', fontSize:'0.95rem' }}>
             We sent a password reset link to <strong style={{ color:'var(--text-primary)' }}>{email}</strong>.
             <br/><br/>
-            Click the link in the email — it'll bring you back here to set a new password.
+            Click the link in the email - it'll bring you back here to set a new password.
           </p>
           <button className="btn btn-secondary" style={{ width:'100%', justifyContent:'center' }} onClick={() => reset('login')}>
             Back to Login
@@ -184,7 +184,7 @@ const AuthPage = () => {
             </button>
           </div>
 
-          {/* Forgot password link — only on login */}
+          {/* Forgot password link - only on login */}
           {mode === 'login' && (
             <div style={{ textAlign:'right', marginTop:'-0.5rem' }}>
               <span onClick={() => reset('forgot')}

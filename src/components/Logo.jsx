@@ -4,10 +4,10 @@ import React from 'react';
  * JobLens Logo component
  *
  * Props:
- *   size     — pixel size of the logo square (default 36)
- *   showText — show "JobLens" wordmark beside image (default true)
- *   textSize — font-size of the wordmark (default '1.3rem')
- *   variant  — 'dark' (black bg, for sidebar/auth) | 'light' (white circle, for light contexts)
+ *   size     - pixel size of the logo square (default 36)
+ *   showText - show "JobLens" wordmark beside image (default true)
+ *   textSize - font-size of the wordmark (default '1.3rem')
+ *   variant  - 'dark' (black bg, for sidebar/auth) | 'light' (white circle, for light contexts)
  */
 const Logo = ({ size = 36, showText = true, textSize = '1.3rem', variant = 'dark' }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', lineHeight: 1 }}>

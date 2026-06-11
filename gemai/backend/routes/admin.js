@@ -15,7 +15,7 @@ const upload = multer({
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  message: { error: "Too many login attempts. Please try again after 15 minutes." }
+  message: { error: "Too many requests. Please try again later." }
 });
 
 // 1. Admin login route
@@ -100,19 +100,80 @@ router.get("/dashboard", async (req, res) => {
       .limit(1);
     const mostUsedTemplate = topTemplatesData?.[0]?.name || "N/A";
 
-    // Estimated spend total & today
-    const { data: totalCostData } = await supabase
+    // Detailed metrics from generations table
+    const { data: allGenerations, error: errAllGens } = await supabase
       .from("generations")
-      .select("estimated_cost_usd")
-      .eq("generation_status", "success");
-    const estimatedSpendTotal = (totalCostData || []).reduce((acc, row) => acc + parseFloat(row.estimated_cost_usd || 0), 0);
+      .select("visitor_id, ip_address, user_ip, estimated_cost_usd, generation_status, user_type, created_at, template_name");
 
-    const { data: todayCostData } = await supabase
-      .from("generations")
-      .select("estimated_cost_usd")
-      .eq("generation_status", "success")
-      .gte("created_at", todayStart.toISOString());
-    const estimatedSpendToday = (todayCostData || []).reduce((acc, row) => acc + parseFloat(row.estimated_cost_usd || 0), 0);
+    if (errAllGens) {
+      throw errAllGens;
+    }
+
+    const todayStr = todayStart.toISOString().split("T")[0];
+
+    let totalFreeCount = 0;
+    let todayFreeCount = 0;
+    let estimatedSpendTotal = 0;
+    let estimatedSpendToday = 0;
+    let estimatedFreeCostTotal = 0;
+
+    const visitorCounts = {};
+    const ipCounts = {};
+    const freeTemplateCounts = {};
+
+    (allGenerations || []).forEach(row => {
+      const isSuccess = row.generation_status === "success";
+      const isFree = row.user_type === "free" || !row.user_type; // fallback for old logs
+      const cost = parseFloat(row.estimated_cost_usd || 0);
+      const rowDateStr = new Date(row.created_at).toISOString().split("T")[0];
+      const ip = row.ip_address || row.user_ip || "unknown";
+
+      if (isSuccess) {
+        estimatedSpendTotal += cost;
+        if (rowDateStr === todayStr) {
+          estimatedSpendToday += cost;
+        }
+
+        if (isFree) {
+          totalFreeCount++;
+          estimatedFreeCostTotal += cost;
+          if (rowDateStr === todayStr) {
+            todayFreeCount++;
+          }
+          if (row.template_name) {
+            freeTemplateCounts[row.template_name] = (freeTemplateCounts[row.template_name] || 0) + 1;
+          }
+        }
+
+        if (row.visitor_id) {
+          visitorCounts[row.visitor_id] = (visitorCounts[row.visitor_id] || 0) + 1;
+        }
+        if (ip && ip !== "127.0.0.1" && ip !== "::1") {
+          ipCounts[ip] = (ipCounts[ip] || 0) + 1;
+        }
+      }
+    });
+
+    // Determine most used free template
+    let mostUsedFreeTemplate = "N/A";
+    let maxFreeTempCount = 0;
+    for (const [name, count] of Object.entries(freeTemplateCounts)) {
+      if (count > maxFreeTempCount) {
+        maxFreeTempCount = count;
+        mostUsedFreeTemplate = name;
+      }
+    }
+
+    // Sort top visitors & top IPs
+    const topVisitors = Object.entries(visitorCounts)
+      .map(([id, count]) => ({ visitor_id: id, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    const topIps = Object.entries(ipCounts)
+      .map(([ip, count]) => ({ ip_address: ip, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
 
     // Recent 10 generations
     const { data: recentGenerations } = await supabase
@@ -138,7 +199,15 @@ router.get("/dashboard", async (req, res) => {
       estimatedTotalSpend: parseFloat(estimatedSpendTotal.toFixed(4)),
       estimatedSpendToday: parseFloat(estimatedSpendToday.toFixed(4)),
       recentGenerations: recentGenerations || [],
-      topTemplates: top5Templates || []
+      topTemplates: top5Templates || [],
+      // New dashboard metrics
+      totalFreeGenerations: totalFreeCount,
+      freeGenerationsToday: todayFreeCount,
+      estimatedFreeCost: parseFloat(estimatedFreeCostTotal.toFixed(4)),
+      remainingBudget: parseFloat(Math.max(0, 5.0 - estimatedSpendTotal).toFixed(4)),
+      mostUsedFreeTemplate,
+      topVisitorIds: topVisitors,
+      topIpAddresses: topIps
     });
   } catch (error) {
     console.error("Dashboard error:", error);
@@ -250,7 +319,7 @@ router.delete("/templates/:id", async (req, res) => {
 // 4. Generations logs endpoints
 router.get("/generations", async (req, res) => {
   try {
-    const { dateRange, templateId, status } = req.query;
+    const { dateFrom, dateTo, preset, templateId, status, visitorId, ip, presentationMode, watermarked, dateRange } = req.query;
 
     let query = supabase.from("generations").select("*");
 
@@ -260,17 +329,42 @@ router.get("/generations", async (req, res) => {
     if (status) {
       query = query.eq("generation_status", status);
     }
+    if (visitorId) {
+      query = query.eq("visitor_id", visitorId);
+    }
+    if (ip) {
+      query = query.or(`ip_address.eq.${ip},user_ip.eq.${ip}`);
+    }
+    if (presentationMode) {
+      query = query.eq("presentation_mode", presentationMode);
+    }
+    if (watermarked !== undefined && watermarked !== "") {
+      query = query.eq("is_watermarked", watermarked === "true");
+    }
 
-    if (dateRange) {
+    // Handle date filters
+    if (dateFrom) {
+      query = query.gte("created_at", new Date(dateFrom).toISOString());
+    }
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      query = query.lte("created_at", end.toISOString());
+    }
+
+    const activePreset = preset || dateRange;
+    if (activePreset) {
       const start = new Date();
-      if (dateRange === "today") {
+      if (activePreset === "today") {
         start.setHours(0, 0, 0, 0);
         query = query.gte("created_at", start.toISOString());
-      } else if (dateRange === "7days") {
+      } else if (activePreset === "7days" || activePreset === "7d") {
         start.setDate(start.getDate() - 7);
+        start.setHours(0, 0, 0, 0);
         query = query.gte("created_at", start.toISOString());
-      } else if (dateRange === "30days") {
+      } else if (activePreset === "30days" || activePreset === "30d") {
         start.setDate(start.getDate() - 30);
+        start.setHours(0, 0, 0, 0);
         query = query.gte("created_at", start.toISOString());
       }
     }
@@ -288,23 +382,33 @@ router.get("/generations", async (req, res) => {
 // 5. Analytics data endpoint
 router.get("/analytics", async (req, res) => {
   try {
-    // 1. Success vs failed breakdown
-    const { data: statusData, error: errStatus } = await supabase
+    // 1. Fetch generations with resilient schema check
+    let allGenerations;
+    let errAll;
+
+    const firstTry = await supabase
       .from("generations")
-      .select("generation_status");
-    if (errStatus) throw errStatus;
+      .select("generation_status, estimated_cost_usd, created_at, presentation_mode, user_type");
 
-    const statusCounts = {};
-    (statusData || []).forEach(row => {
-      const stat = row.generation_status || "success";
-      statusCounts[stat] = (statusCounts[stat] || 0) + 1;
-    });
-    const statusBreakdown = Object.keys(statusCounts).map(status => ({
-      status,
-      count: statusCounts[status]
-    }));
+    allGenerations = firstTry.data;
+    errAll = firstTry.error;
 
-    // 2. Template usage distribution
+    if (errAll && (errAll.message.includes("presentation_mode") || errAll.message.includes("column") || errAll.status === 400 || errAll.code === "PGRST200")) {
+      console.warn("Analytics generations query failed due to presentation_mode column mismatch, trying fallback query...");
+      const fallbackTry = await supabase
+        .from("generations")
+        .select("generation_status, estimated_cost_usd, created_at, user_type");
+      
+      if (fallbackTry.error) {
+        throw fallbackTry.error;
+      }
+      allGenerations = fallbackTry.data;
+      errAll = null;
+    } else if (errAll) {
+      throw errAll;
+    }
+
+    // 2. Fetch templates
     const { data: templateUsageData, error: errUsage } = await supabase
       .from("templates")
       .select("name, usage_count")
@@ -316,24 +420,79 @@ router.get("/analytics", async (req, res) => {
       count: t.usage_count || 0
     }));
 
-    // 3. Daily volume (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    thirtyDaysAgo.setHours(0, 0, 0, 0);
+    // 3. Fetch settings for budget cap
+    const { data: settingsData } = await supabase
+      .from("app_settings")
+      .select("key, value");
 
-    const { data: dailyData, error: errDaily } = await supabase
-      .from("generations")
-      .select("created_at")
-      .gte("created_at", thirtyDaysAgo.toISOString());
-    if (errDaily) throw errDaily;
-
-    const dailyCounts = {};
-    (dailyData || []).forEach(row => {
-      const dateStr = new Date(row.created_at).toISOString().split("T")[0];
-      dailyCounts[dateStr] = (dailyCounts[dateStr] || 0) + 1;
+    const settings = {};
+    (settingsData || []).forEach(row => {
+      settings[row.key] = row.value;
     });
 
-    // Fill empty dates in last 30 days
+    const maxTotalGens = parseInt(settings.max_total_generations || "80", 10);
+    const estCostPerImg = parseFloat(settings.estimated_cost_per_image_usd || "0.056");
+    const budgetCap = maxTotalGens * estCostPerImg;
+
+    // Process variables
+    const todayStr = new Date().toISOString().split("T")[0];
+    const statusCounts = {};
+    const dailyCounts = {};
+    
+    // Presentation Mode metrics
+    const gensByMode = { keep_original: 0, set_into_ring: 0, set_into_pendant: 0 };
+    const costByMode = { keep_original: 0, set_into_ring: 0, set_into_pendant: 0 };
+
+    let totalSpend = 0;
+    let spendToday = 0;
+    let freeTodayCount = 0;
+
+    (allGenerations || []).forEach(row => {
+      const status = row.generation_status || "success";
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+
+      const cost = parseFloat(row.estimated_cost_usd || 0);
+      const dateStr = new Date(row.created_at).toISOString().split("T")[0];
+
+      if (status === "success") {
+        totalSpend += cost;
+        dailyCounts[dateStr] = (dailyCounts[dateStr] || 0) + 1;
+
+        if (dateStr === todayStr) {
+          spendToday += cost;
+          if (row.user_type === "free" || !row.user_type) {
+            freeTodayCount++;
+          }
+        }
+
+        const mode = row.presentation_mode || "keep_original";
+        if (gensByMode[mode] !== undefined) {
+          gensByMode[mode]++;
+          costByMode[mode] = parseFloat((costByMode[mode] + cost).toFixed(4));
+        } else {
+          gensByMode[mode] = 1;
+          costByMode[mode] = cost;
+        }
+      }
+    });
+
+    // Success vs failed breakdown
+    const statusBreakdown = Object.keys(statusCounts).map(status => ({
+      status,
+      count: statusCounts[status]
+    }));
+
+    // Find most used presentation mode
+    let mostUsedMode = "keep_original";
+    let maxModeCount = -1;
+    for (const [mode, count] of Object.entries(gensByMode)) {
+      if (count > maxModeCount) {
+        maxModeCount = count;
+        mostUsedMode = mode;
+      }
+    }
+
+    // Fill empty dates for last 30 days
     const dailyGenerations = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date();
@@ -345,29 +504,19 @@ router.get("/analytics", async (req, res) => {
       });
     }
 
-    // 4. Cost summaries
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const { data: totalCostRows } = await supabase
-      .from("generations")
-      .select("estimated_cost_usd")
-      .eq("generation_status", "success");
-    const totalSpend = (totalCostRows || []).reduce((acc, row) => acc + parseFloat(row.estimated_cost_usd || 0), 0);
-
-    const { data: todayCostRows } = await supabase
-      .from("generations")
-      .select("estimated_cost_usd")
-      .eq("generation_status", "success")
-      .gte("created_at", todayStart.toISOString());
-    const spendToday = (todayCostRows || []).reduce((acc, row) => acc + parseFloat(row.estimated_cost_usd || 0), 0);
-
     return res.json({
       dailyGenerations,
       templateUsage,
       statusBreakdown,
       estimatedSpendTotal: parseFloat(totalSpend.toFixed(4)),
-      estimatedSpendToday: parseFloat(spendToday.toFixed(4))
+      estimatedSpendToday: parseFloat(spendToday.toFixed(4)),
+      // Presentation Mode analytics
+      generationsByMode: gensByMode,
+      costByMode: costByMode,
+      mostUsedPresentationMode: mostUsedMode,
+      freeGenerationsUsedToday: freeTodayCount,
+      remainingFreeBudgetEstimate: parseFloat(Math.max(0, budgetCap - totalSpend).toFixed(4)),
+      dailyGenerationCount: dailyCounts[todayStr] || 0
     });
   } catch (error) {
     console.error("Analytics error:", error);

@@ -9,6 +9,12 @@ function getHeaders() {
 }
 
 async function handleResponse(res) {
+  if (res.status === 401) {
+    localStorage.removeItem("gemify_admin_token");
+    if (!window.location.pathname.startsWith("/admin/login")) {
+      window.location.href = "/admin/login?expired=true";
+    }
+  }
   if (!res.ok) {
     let errMsg = "An error occurred";
     try {
@@ -86,9 +92,18 @@ export const adminApi = {
 
   async getGenerations(filters = {}) {
     const params = new URLSearchParams();
-    if (filters.dateRange) params.append("dateRange", filters.dateRange);
+    if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
+    if (filters.dateTo) params.append("dateTo", filters.dateTo);
+    if (filters.preset) params.append("preset", filters.preset);
     if (filters.templateId) params.append("templateId", filters.templateId);
     if (filters.status) params.append("status", filters.status);
+    if (filters.visitorId) params.append("visitorId", filters.visitorId);
+    if (filters.ip) params.append("ip", filters.ip);
+    if (filters.presentationMode) params.append("presentationMode", filters.presentationMode);
+    if (filters.watermarked !== undefined && filters.watermarked !== null && filters.watermarked !== "") {
+      params.append("watermarked", filters.watermarked);
+    }
+    if (filters.dateRange) params.append("dateRange", filters.dateRange);
 
     const queryStr = params.toString();
     const url = `${API_URL}/api/admin/generations${queryStr ? `?${queryStr}` : ""}`;

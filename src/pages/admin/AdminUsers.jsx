@@ -133,10 +133,10 @@ export default function AdminUsers() {
     // Rows
     const rows = filteredUsers.map(u => [
       u.email || 'Anonymous',
-      u.profile_data?.profile?.name || '—',
+      u.profile_data?.profile?.name || '-',
       new Date(u.created_at).toISOString().split('T')[0],
       u.total_analyses || 0,
-      u.last_active ? new Date(u.last_active).toISOString().split('T')[0] : '—',
+      u.last_active ? new Date(u.last_active).toISOString().split('T')[0] : '-',
       u.profile_data?.profile?.name ? 'Yes' : 'No'
     ]);
 
@@ -153,7 +153,7 @@ export default function AdminUsers() {
   };
 
   const formatDate = (iso) => {
-    if (!iso) return '—';
+    if (!iso) return '-';
     const d = new Date(iso);
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
@@ -250,7 +250,7 @@ export default function AdminUsers() {
                       onClick={() => handleViewProfile(u)}
                     >
                       <td style={{ fontWeight: 500 }}>{u.email || 'Anonymous'}</td>
-                      <td>{u.profile_data?.profile?.name || '—'}</td>
+                      <td>{u.profile_data?.profile?.name || '-'}</td>
                       <td>{formatDate(u.created_at)}</td>
                       <td>
                         <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
@@ -322,11 +322,11 @@ export default function AdminUsers() {
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Education</span>
-                      <span>{selectedUser.profile_data?.profile?.education || '—'} (Grad: {selectedUser.profile_data?.profile?.gradYear || '—'})</span>
+                      <span>{selectedUser.profile_data?.profile?.education || '-'} (Grad: {selectedUser.profile_data?.profile?.gradYear || '-'})</span>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Employment Status</span>
-                      <span>{selectedUser.profile_data?.profile?.employed || '—'}</span>
+                      <span>{selectedUser.profile_data?.profile?.employed || '-'}</span>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Stated Goals</span>
@@ -338,7 +338,7 @@ export default function AdminUsers() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Target Roles</span>
-                      <span style={{ fontSize: '0.88rem' }}>{(selectedUser.profile_data?.targetRoles || []).join(', ') || '—'}</span>
+                      <span style={{ fontSize: '0.88rem' }}>{(selectedUser.profile_data?.targetRoles || []).join(', ') || '-'}</span>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Work Types & locations</span>
@@ -348,15 +348,15 @@ export default function AdminUsers() {
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Salary Expectation</span>
-                      <span>{selectedUser.profile_data?.preferences?.stipend || '—'}</span>
+                      <span>{selectedUser.profile_data?.preferences?.stipend || '-'}</span>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', display: 'block' }}>Skills & Tools</span>
                       <span style={{ fontSize: '0.82rem', color: '#10b981', display: 'block', wordBreak: 'break-word', marginTop: '0.2rem' }}>
-                        Skills: {(selectedUser.profile_data?.selectedSkills || []).join(', ') || '—'}
+                        Skills: {(selectedUser.profile_data?.selectedSkills || []).join(', ') || '-'}
                       </span>
                       <span style={{ fontSize: '0.82rem', color: '#8b5cf6', display: 'block', wordBreak: 'break-word', marginTop: '0.2rem' }}>
-                        Tools: {[(selectedUser.profile_data?.selectedTools || []).join(', '), (selectedUser.profile_data?.selectedAiTools || []).join(', ')].filter(Boolean).join(', ') || '—'}
+                        Tools: {[(selectedUser.profile_data?.selectedTools || []).join(', '), (selectedUser.profile_data?.selectedAiTools || []).join(', ')].filter(Boolean).join(', ') || '-'}
                       </span>
                     </div>
                   </div>

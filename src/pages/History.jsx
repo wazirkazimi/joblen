@@ -47,11 +47,24 @@ export default function History() {
   );
 
   return (
-    <div style={{ maxWidth:'700px', margin:'0 auto', paddingTop:'1rem' }}>
+    <div className="history-container" style={{ maxWidth:'700px', margin:'0 auto', paddingTop:'1rem' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }
 
+        .history-container {
+          padding: 1rem 2rem;
+        }
+        .history-detail-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          margin-bottom: 1.25rem;
+        }
+
         /* ── History mobile fixes ── */
+        @media (max-width: 768px) {
+          .history-container { padding: 1rem !important; }
+        }
         @media (max-width: 640px) {
           .history-header   { flex-direction: column !important; align-items: flex-start !important; gap: 0.25rem !important; margin-bottom: 1.25rem !important; }
           .history-row      { padding: 0.75rem 0.85rem !important; gap: 0.6rem !important; }
@@ -111,7 +124,7 @@ export default function History() {
                         {r.fitScore ?? '?'}
                       </div>
 
-                      {/* Info block — grows, wraps */}
+                      {/* Info block - grows, wraps */}
                       <div style={{ flex:1, minWidth:0 }}>
                         <div
                           className="history-role"
@@ -123,7 +136,7 @@ export default function History() {
                           {r.company || 'Unknown Company'}
                         </div>
 
-                        {/* Meta row — wraps gracefully on mobile */}
+                        {/* Meta row - wraps gracefully on mobile */}
                         <div className="history-meta" style={{ fontSize:'0.76rem', color:'var(--text-secondary)', display:'flex', flexWrap:'wrap', gap:'0.25rem 0.6rem', alignItems:'center' }}>
                           <span style={{ color:probColor, fontWeight:600 }}>{r.probability}</span>
                           <span style={{ opacity:0.4 }}>·</span>
@@ -176,7 +189,7 @@ export default function History() {
                               </p>
                             )}
 
-                            <div className="history-detail-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1.25rem' }}>
+                            <div className="history-detail-grid">
                               <div>
                                 <div style={{ fontSize:'0.74rem', fontWeight:700, color:'var(--success)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'0.4rem' }}>✓ Strengths</div>
                                 {(r.pros || []).slice(0,3).map((p,i) => (

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Upload, Sparkles, Download, Loader2, X, Gem, CheckCircle2, RefreshCw, ChevronDown } from 'lucide-react';
+import { Upload, Sparkles, Download, Loader2, X, Gem, CheckCircle2, RefreshCw, ChevronDown, Eye, AlertTriangle } from 'lucide-react';
 
 const loadingMessages = [
   "Analysing your stone...",
@@ -8,6 +8,31 @@ const loadingMessages = [
   "Enhancing details...",
   "Almost ready..."
 ];
+
+// Helper functions for cookie management
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+}
+
+function setCookie(name, value, days = 365) {
+  const date = new Date();
+  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+  const expires = `; expires=${date.toUTCString()}`;
+  document.cookie = `${name}=${value || ""}${expires}; path=/; SameSite=Lax`;
+}
+
+function getOrCreateVisitorId() {
+  let vId = localStorage.getItem('visitor_id') || getCookie('visitor_id');
+  if (!vId) {
+    vId = 'visitor_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
+  localStorage.setItem('visitor_id', vId);
+  setCookie('visitor_id', vId);
+  return vId;
+}
 
 const Highlight = ({ children }) => (
   <span className="text-[#FFCE00] font-bold underline decoration-[#FFCE00] underline-offset-4">
@@ -72,7 +97,7 @@ const faqs = [
   }
 ];
 
-const marqueePairs = [
+const defaultMarqueePairs = [
   {
     input: "https://res.cloudinary.com/deijlb7dp/image/upload/q_auto/f_auto/v1780236130/neck_ypwtcu.jpg",
     output: "https://res.cloudinary.com/deijlb7dp/image/upload/q_auto/f_auto/v1780236144/neck_pv3ad2.png"
@@ -103,14 +128,17 @@ const marqueePairs = [
   }
 ];
 
-const repeatedPairs = [
-  ...marqueePairs,
-  ...marqueePairs,
-  ...marqueePairs,
-  ...marqueePairs
-];
-
 export default function Home() {
+  const [marqueePairs, setMarqueePairs] = useState(defaultMarqueePairs);
+  const [hidePricing, setHidePricing] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const repeatedPairs = [
+    ...marqueePairs,
+    ...marqueePairs,
+    ...marqueePairs,
+    ...marqueePairs
+  ];
+
   const [templates, setTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [selectedTemplateId, setSelectedTemplateId] = useState(null);
@@ -123,11 +151,46 @@ export default function Home() {
   const [whatsappLink, setWhatsappLink] = useState('');
   const [error, setError] = useState(null);
   const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [presentationMode, setPresentationMode] = useState("keep_original");
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   const [showResults, setShowResults] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeFaq, setActiveFaq] = useState(null);
   const fileInputRef = useRef(null);
+
+  // New visitor limit and tracking states
+  const [visitorId, setVisitorId] = useState('');
+  const [freeLimits, setFreeLimits] = useState({ limit: 3, used: 0, remaining: 3 });
+  const [showLimitModal, setShowLimitModal] = useState(false);
+
+  useEffect(() => {
+    const vId = getOrCreateVisitorId();
+    setVisitorId(vId);
+    loadLimits(vId);
+  }, []);
+
+  const loadLimits = async (vId) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/free-usage?visitorId=${vId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setFreeLimits({
+          limit: data.limit,
+          used: data.used,
+          remaining: data.remaining
+        });
+        if (data.whatsappLink) {
+          setWhatsappLink(data.whatsappLink);
+        }
+        if (data.maintenanceMode !== undefined) {
+          setMaintenanceMode(data.maintenanceMode);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load visitor limits:", e);
+    }
+  };
 
   const [searchParams] = useSearchParams();
   const templateParam = searchParams.get("template");
@@ -148,6 +211,35 @@ export default function Home() {
       }
     }
     loadTemplates();
+  }, []);
+
+  // Fetch settings dynamically
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/settings`);
+        if (res.ok) {
+          const data = await res.json();
+          const settings = data.settings || {};
+          if (settings.hide_pricing) {
+            setHidePricing(settings.hide_pricing === "true");
+          }
+          if (settings.carousel_pairs) {
+            try {
+              const parsed = JSON.parse(settings.carousel_pairs);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setMarqueePairs(parsed);
+              }
+            } catch (err) {
+              console.error("Error parsing carousel pairs:", err);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load settings:", e);
+      }
+    }
+    loadSettings();
   }, []);
 
   // Preselect template if passed from Explore query parameters
@@ -257,6 +349,28 @@ export default function Home() {
   };
 
   const handleGenerate = async () => {
+    const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+    let isCompatible = true;
+    if (selectedTemplate && selectedTemplate.allowed_presentation_modes_json) {
+      try {
+        const allowed = JSON.parse(selectedTemplate.allowed_presentation_modes_json);
+        if (Array.isArray(allowed)) {
+          isCompatible = allowed.includes(presentationMode);
+        }
+      } catch (e) {}
+    }
+
+    if (!isCompatible) {
+      setError("This template is not available for the selected presentation type.");
+      return;
+    }
+
+    const isOutOfLimits = freeLimits.remaining <= 0;
+    if (isOutOfLimits) {
+      setShowLimitModal(true);
+      return;
+    }
+
     if (!uploadedFile || !selectedTemplateId) return;
 
     setIsGenerating(true);
@@ -272,8 +386,10 @@ export default function Home() {
       formData.append("image", uploadedFile);
       formData.append("templateId", selectedTemplateId);
       formData.append("aspectRatio", aspectRatio);
+      formData.append("visitorId", visitorId);
+      formData.append("presentationMode", presentationMode);
 
-      const genRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/generate`, {
+      const genRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/generate`, {
         method: "POST",
         body: formData,
       });
@@ -282,19 +398,33 @@ export default function Home() {
       if (!genRes.ok) {
         try {
           const data = await genRes.json();
+          if (data && data.maintenance) {
+            errorMsg = data.message;
+            throw new Error(errorMsg);
+          }
+          if (data && data.limitReached) {
+            setFreeLimits(prev => ({ ...prev, remaining: 0 }));
+            setShowLimitModal(true);
+            throw new Error(data.message);
+          }
           if (data && data.error) {
             errorMsg = data.error;
           }
           if (data && data.whatsappLink) {
             setWhatsappLink(data.whatsappLink);
           }
-        } catch (e) {}
+        } catch (e) {
+          if (e.message && (e.message.includes("generations") || e.message.includes("maintenance"))) {
+            throw e;
+          }
+        }
         throw new Error(errorMsg);
       }
       
       const data = await genRes.json();
       setOutputUrl(data.outputUrl);
       setWhatsappLink(data.whatsappLink || '');
+      loadLimits(visitorId);
     } catch (err) {
       console.error(err);
       setError(err.message || "Something went wrong - please try again");
@@ -345,18 +475,34 @@ export default function Home() {
     setActiveFaq(activeFaq === index ? null : index);
   };
 
+  const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+  let isCompatible = true;
+  if (selectedTemplate && selectedTemplate.allowed_presentation_modes_json) {
+    try {
+      const allowed = JSON.parse(selectedTemplate.allowed_presentation_modes_json);
+      if (Array.isArray(allowed)) {
+        isCompatible = allowed.includes(presentationMode);
+      }
+    } catch (e) {}
+  }
+
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#FAF9F6] text-gray-900 selection:bg-amber-500/25 selection:text-amber-800 antialiased">
+    <div className="min-h-screen flex flex-col font-sans bg-[#FAF9F6] text-gray-900 selection:bg-amber-500/25 selection:text-amber-800 antialiased overflow-x-hidden">
       
+      {/* Maintenance Mode Banner */}
+      {maintenanceMode && (
+        <div className="bg-amber-500 text-gray-950 text-center py-3.5 px-4 text-xs font-black tracking-wide uppercase sticky top-24 z-40 shadow-md flex items-center justify-center gap-2">
+          <AlertTriangle size={14} className="shrink-0" />
+          <span>AuraLux AI is temporarily in maintenance mode. You can explore templates, but image generation is currently paused.</span>
+        </div>
+      )}
+
       {/* Section 1 - Floating Capsule Navbar */}
       <div className="fixed top-5 left-0 w-full px-4 z-50 flex justify-center">
         <nav className={`w-full max-w-4xl bg-white/80 backdrop-blur-xl border border-black/5 rounded-full px-6 py-3 flex justify-between items-center transition-all duration-300
           ${isScrolled ? 'shadow-lg shadow-black/5 border-black/10' : 'shadow-none'}`}>
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-[#FFCE00] shadow-sm">
-              <Gem size={16} className="fill-current" />
-            </div>
-            <span className="text-lg font-black tracking-tight text-gray-900">
+            <span className="text-lg md:text-xl font-black tracking-tight text-gray-900">
               Auralux<span className="text-[#FFCE00] font-black"> AI</span>
             </span>
           </div>
@@ -364,15 +510,14 @@ export default function Home() {
           <div className="hidden md:flex items-center gap-6 text-xs font-bold tracking-wider uppercase text-gray-500">
             <a href="#how-it-works" className="hover:text-black transition-colors">How it works</a>
             <Link to="/explore" className="text-[#FFCE00] hover:text-amber-600 transition-colors font-extrabold">Explore</Link>
-            <a href="#pricing" className="hover:text-black transition-colors">Pricing</a>
+            {!hidePricing && <a href="#pricing" className="hover:text-black transition-colors">Pricing</a>}
             <a href="#faq" className="hover:text-black transition-colors">FAQ</a>
           </div>
           
           <div className="flex items-center gap-3">
-            <Link to="/explore" className="text-[#FFCE00] hover:text-amber-600 transition-colors font-extrabold text-xs uppercase tracking-wider md:hidden">Explore</Link>
             <button 
               onClick={scrollToUpload}
-              className="bg-[#FFCE00] hover:bg-[#E5B800] text-gray-950 font-extrabold text-xs md:text-sm px-5 py-2 rounded-full transition-all shadow-md shadow-amber-500/10 hover:scale-[1.03] active:scale-98"
+              className="bg-[#FFCE00] hover:bg-[#E5B800] text-gray-950 font-extrabold text-xs md:text-sm px-5 py-2.5 md:px-5 md:py-2.5 rounded-full transition-all shadow-md shadow-amber-500/10 hover:scale-[1.03] active:scale-98"
             >
               Create Free
             </button>
@@ -381,29 +526,29 @@ export default function Home() {
       </div>
 
       {/* Section 2 - GemAI Light Hero */}
-      <section className="text-center pt-40 pb-20 flex flex-col items-center justify-center relative overflow-hidden bg-[#FAF9F6]">
+      <section className="text-center pt-32 pb-16 md:pt-40 md:pb-20 flex flex-col items-center justify-center relative overflow-hidden bg-[#FAF9F6]">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-amber-500/[0.03] rounded-full blur-3xl pointer-events-none"></div>
         
         <div className="px-6 max-w-4xl z-10">
-          <h1 className="text-4xl md:text-6xl lg:text-[72px] font-black leading-[1.05] tracking-tight mb-6 text-gray-900">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[72px] font-black leading-[1.1] md:leading-[1.05] tracking-tight mb-6 text-gray-900">
             Make Luxury Jewellery <br />
             Ads From A Single Photo
           </h1>
           
-          <p className="text-sm md:text-base text-gray-500 max-w-xl mx-auto mb-10 leading-relaxed font-medium">
+          <p className="text-sm md:text-base text-gray-500 max-w-xl mx-auto mb-10 leading-relaxed font-medium px-2">
             Upload a gemstone or jewellery photo. Auralux AI turns it into polished AI product images in minutes.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full max-w-xs sm:max-w-none mx-auto px-4">
             <button 
               onClick={scrollToUpload}
-              className="bg-[#FFCE00] hover:bg-[#E5B800] text-gray-950 font-black px-8 py-4 rounded-full shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.03] active:scale-98 flex items-center gap-1 group text-sm md:text-base"
+              className="w-full sm:w-auto bg-[#FFCE00] hover:bg-[#E5B800] text-gray-950 font-black px-8 py-4 rounded-full shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.03] active:scale-98 flex items-center justify-center gap-1 group text-sm md:text-base"
             >
               Create Your First Image Free &darr;
             </button>
             <Link 
               to="/explore"
-              className="bg-white hover:bg-gray-50 border border-gray-250 text-gray-800 font-extrabold px-8 py-4 rounded-full shadow-md transition-all hover:scale-[1.03] active:scale-98 text-sm md:text-base flex items-center gap-2"
+              className="w-full sm:w-auto bg-white hover:bg-gray-50 border border-gray-250 text-gray-800 font-extrabold px-8 py-4 rounded-full shadow-md transition-all hover:scale-[1.03] active:scale-98 text-sm md:text-base flex items-center justify-center gap-2"
             >
               <Sparkles size={16} className="text-[#FFCE00]" />
               Explore Templates
@@ -416,18 +561,25 @@ export default function Home() {
         </div>
 
         {/* 3D Showcase Carousel */}
-        <div className="w-full relative mt-20 z-15 select-none overflow-hidden py-10 bg-black/[0.01] border-t border-b border-gray-200/50 perspective-container">
-          <div className="absolute top-0 bottom-0 left-1/2 w-[3px] bg-[#FFCE00] shadow-[0_0_12px_#FFCE00] z-35 -translate-x-1/2"></div>
-          <div className="relative w-full h-52 md:h-72 overflow-hidden flex justify-center items-center">
+        <div className="w-full relative mt-16 md:mt-20 z-15 select-none overflow-hidden py-10 bg-black/[0.01] border-t border-b border-gray-200/50 perspective-container">
+          {/* Gradients to fade edges */}
+          <div className="absolute inset-y-0 left-0 w-12 md:w-24 bg-gradient-to-r from-[#FAF9F6] to-transparent z-30 pointer-events-none"></div>
+          <div className="absolute inset-y-0 right-0 w-12 md:w-24 bg-gradient-to-l from-[#FAF9F6] to-transparent z-30 pointer-events-none"></div>
+
+          {/* Glowing Middle Divider */}
+          <div className="absolute top-0 bottom-0 left-1/2 w-[3px] bg-[#FFCE00] shadow-[0_0_20px_#FFCE00,0_0_8px_#FFCE00] z-35 -translate-x-1/2"></div>
+          
+          {/* Split 3D rotating marquees (both Mobile and Desktop) */}
+          <div className="relative w-full h-44 md:h-72 overflow-hidden flex justify-center items-center">
             
-            {/* Left Marquee */}
+            {/* Left Marquee (Raw/Grayscale before images) */}
             <div className="absolute top-0 bottom-0 left-0 w-1/2 overflow-hidden z-20 origin-right" style={{ transform: "rotateY(18deg)", transformStyle: "preserve-3d" }}>
               <div className="absolute top-0 bottom-0 left-0 w-[200%] h-full">
                 <div className="animate-marquee-right flex gap-4 md:gap-6 pr-4 md:pr-6 whitespace-nowrap h-full items-center">
                   {repeatedPairs.map((pair, index) => (
                     <div 
                       key={`left-${index}`} 
-                      className="w-36 h-48 md:w-48 md:h-64 rounded-2xl md:rounded-[20px] overflow-hidden shadow-xl border border-black/5 shrink-0 bg-gray-100"
+                      className="w-28 h-36 md:w-48 md:h-64 rounded-xl md:rounded-[20px] overflow-hidden shadow-xl border border-black/5 shrink-0 bg-gray-100"
                     >
                       <img src={pair.input} alt="Showcase Product Raw" className="w-full h-full object-cover pointer-events-none grayscale opacity-80" />
                     </div>
@@ -436,14 +588,14 @@ export default function Home() {
               </div>
             </div>
             
-            {/* Right Marquee */}
+            {/* Right Marquee (Vibrant rendered after images) */}
             <div className="absolute top-0 bottom-0 right-0 w-1/2 overflow-hidden z-20 origin-left" style={{ transform: "rotateY(-18deg)", transformStyle: "preserve-3d" }}>
               <div className="absolute top-0 bottom-0 left-[-100%] w-[200%] h-full">
                 <div className="animate-marquee-right flex gap-4 md:gap-6 pr-4 md:pr-6 whitespace-nowrap h-full items-center">
                   {repeatedPairs.map((pair, index) => (
                     <div 
                       key={`right-${index}`} 
-                      className="w-36 h-48 md:w-48 md:h-64 rounded-2xl md:rounded-[20px] overflow-hidden shadow-xl border border-black/5 shrink-0 bg-gray-100"
+                      className="w-28 h-36 md:w-48 md:h-64 rounded-xl md:rounded-[20px] overflow-hidden shadow-xl border border-black/5 shrink-0 bg-gray-100"
                     >
                       <img src={pair.output} alt="Showcase Product Final" className="w-full h-full object-cover pointer-events-none" />
                     </div>
@@ -463,7 +615,7 @@ export default function Home() {
         </h2>
         <div className="absolute left-1/2 top-[240px] bottom-[150px] w-[2px] bg-gradient-to-b from-[#FFCE00] via-amber-500/10 to-transparent -translate-x-1/2 hidden md:block"></div>
         
-        <div className="space-y-36 relative">
+        <div className="space-y-20 md:space-y-36 relative">
           
           {/* Step 1: Upload Dropzone */}
           <div id="step-1-section" className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative">
@@ -544,6 +696,50 @@ export default function Home() {
             </div>
             
             <div className="order-1 md:order-2">
+              {/* Presentation Mode Selector */}
+              <div className="mb-6 bg-white p-4 rounded-2xl border border-gray-200/50 shadow-xs">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2.5">
+                  How do you want to present your product?
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {[
+                    { id: "keep_original", name: "Keep Original Product" },
+                    { id: "set_into_ring", name: "Set Gemstone into Ring" },
+                    { id: "set_into_pendant", name: "Set Gemstone into Pendant" }
+                  ].map((mode) => {
+                    const isSelected = presentationMode === mode.id;
+                    const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+                    let isAllowed = true;
+                    if (selectedTemplate && selectedTemplate.allowed_presentation_modes_json) {
+                      try {
+                        const allowed = JSON.parse(selectedTemplate.allowed_presentation_modes_json);
+                        if (Array.isArray(allowed)) {
+                          isAllowed = allowed.includes(mode.id);
+                        }
+                      } catch (e) {}
+                    }
+                    
+                    return (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        disabled={!isAllowed}
+                        onClick={() => { setPresentationMode(mode.id); setOutputUrl(null); }}
+                        className={`py-2.5 px-3 rounded-xl text-[10px] font-black tracking-wider transition-all border text-center select-none flex flex-col justify-center items-center gap-0.5
+                          ${!isAllowed 
+                            ? 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed opacity-50' 
+                            : isSelected 
+                              ? 'bg-[#FFCE00] text-gray-950 border-[#FFCE00] shadow-md shadow-amber-500/10' 
+                              : 'bg-white text-gray-400 border-gray-250 hover:bg-gray-50 hover:text-black'}`}
+                      >
+                        {mode.name}
+                        {!isAllowed && <span className="text-[8px] font-bold text-red-400 font-sans">Not compatible</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Tabs */}
               <div className="flex gap-2 overflow-x-auto pb-3 mb-4 custom-scrollbar">
                 <button
@@ -580,21 +776,32 @@ export default function Home() {
                     .filter(t => activeCategory === "all" || t.category === activeCategory)
                     .map(t => {
                       const isSelected = selectedTemplateId === t.id;
-                      const beforeImg = t.input_preview_url || "https://res.cloudinary.com/deijlb7dp/image/upload/q_auto/f_auto/v1780241242/ring_zbvaee.png";
                       return (
                         <div
                           key={t.id}
-                          onClick={() => { setSelectedTemplateId(t.id); setOutputUrl(null); }}
+                          onClick={() => { 
+                            setSelectedTemplateId(t.id); 
+                            setOutputUrl(null); 
+                            if (t.preferred_presentation_mode) {
+                              setPresentationMode(t.preferred_presentation_mode);
+                            } else if (t.category === 'ring' || t.category === 'model') {
+                              setPresentationMode('set_into_ring');
+                            } else {
+                              setPresentationMode('keep_original');
+                            }
+                          }}
                           className={`bg-white rounded-[12px] overflow-hidden cursor-pointer border transition-all duration-200 flex flex-col group
                             ${isSelected ? 'border-[#FFCE00] scale-[1.01] shadow-md shadow-amber-500/5' : 'border-gray-200 hover:border-gray-300 hover:shadow-xs'}`}
                         >
-                          <div className="w-full aspect-[4/3] grid grid-cols-2 bg-gray-50 border-b border-gray-200/50 relative">
-                            <div className="w-full h-full relative overflow-hidden">
-                              <img src={beforeImg} alt="Before preview" className="w-full h-full object-cover grayscale opacity-70" />
-                            </div>
-                            <div className="w-full h-full relative overflow-hidden border-l border-gray-100">
-                              <img src={t.output_preview_url} alt="After preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            </div>
+                          <div className="w-full aspect-[4/3] bg-neutral-50 border-b border-gray-200/50 relative flex items-center justify-center overflow-hidden">
+                            <img src={t.output_preview_url} alt={t.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setLightboxImage(t.output_preview_url); }}
+                              className="absolute bottom-2 left-2 bg-black/60 hover:bg-black/80 text-white px-2 py-1 rounded-md text-[9px] font-bold tracking-wide transition-colors z-20 backdrop-blur-xs shadow-xs"
+                            >
+                              Zoom
+                            </button>
                           </div>
                           <div className="p-2.5 flex justify-between items-center bg-gray-50/50">
                             <span className="font-extrabold text-xs text-gray-800 truncate">{t.name}</span>
@@ -656,16 +863,34 @@ export default function Home() {
                 </div>
               </div>
               
+              {/* Template Compatibility Warning Banner */}
+              {!isCompatible && selectedTemplateId && (
+                <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl p-3.5 text-xs font-bold leading-normal flex gap-2 items-center">
+                  <AlertTriangle className="h-4.5 w-4.5 shrink-0 text-red-500" />
+                  <span>This template is not available for the selected presentation type.</span>
+                </div>
+              )}
+
+              {/* Maintenance Mode Generate Warn Banner */}
+              {maintenanceMode && (
+                <div className="mb-4 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl p-3.5 text-xs font-bold leading-normal flex gap-2 items-center">
+                  <AlertTriangle className="h-4.5 w-4.5 shrink-0 text-amber-500" />
+                  <span>AuraLux AI is temporarily in maintenance mode. Image generation is currently paused.</span>
+                </div>
+              )}
+
               <button 
                 type="button"
                 onClick={handleGenerate}
-                disabled={!uploadedFile || !selectedTemplateId || isGenerating}
+                disabled={isGenerating || maintenanceMode || !isCompatible || ((!uploadedFile || !selectedTemplateId) && freeLimits.remaining > 0)}
                 className={`w-full py-4 rounded-[12px] font-extrabold text-base flex items-center justify-center transition-all duration-150 shadow-lg min-h-[56px]
-                  ${(!uploadedFile || !selectedTemplateId) 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
+                  ${((!uploadedFile || !selectedTemplateId) && freeLimits.remaining > 0) || !isCompatible || maintenanceMode
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 shadow-none' 
                     : isGenerating 
                       ? 'bg-amber-300 text-gray-900 cursor-wait' 
-                      : 'bg-[#FFCE00] hover:bg-[#E5B800] text-gray-950 shadow-amber-500/10 hover:shadow-amber-500/20 active:scale-[0.99] hover:scale-[1.01]'
+                      : freeLimits.remaining <= 0
+                        ? 'bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-black border border-gray-350 cursor-pointer shadow-none'
+                        : 'bg-[#FFCE00] hover:bg-[#E5B800] text-gray-950 shadow-amber-500/10 hover:shadow-amber-500/20 active:scale-[0.99] hover:scale-[1.01]'
                   }`}
               >
                 {isGenerating ? (
@@ -673,11 +898,24 @@ export default function Home() {
                     <Loader2 className="animate-spin mr-2.5 h-5 w-5" />
                     Generating...
                   </>
+                ) : freeLimits.remaining <= 0 ? (
+                  "Limit Reached - Get More"
                 ) : (
                   "Generate AI Image"
                 )}
               </button>
-              {(!uploadedFile || !selectedTemplateId) && (
+
+              <div className="mt-3 text-center">
+                <span className="text-xs font-semibold text-gray-500">
+                  {freeLimits.remaining > 0 ? (
+                    <>You have <span className="font-bold text-gray-900">{freeLimits.remaining}</span> free generations left</>
+                  ) : (
+                    <span className="text-red-500 font-bold">0 free generations left. Limit reached!</span>
+                  )}
+                </span>
+              </div>
+
+              {(!uploadedFile || !selectedTemplateId) && freeLimits.remaining > 0 && (
                 <p className="text-[10px] text-center text-gray-400 font-bold mt-3">
                   * Please upload an image in Step 1 and select a template in Step 2 to enable generation.
                 </p>
@@ -704,12 +942,18 @@ export default function Home() {
                   <div className={`w-full ${aspectRatio === "9:16" ? "aspect-[9/16] max-h-[420px]" : aspectRatio === "16:9" ? "aspect-[16/9]" : "aspect-square"} mx-auto rounded-[16px] overflow-hidden border border-gray-200/60 bg-gray-50 mb-6`}>
                     <img src={outputUrl} alt="AI output" className="w-full h-full object-cover" />
                   </div>
-                  <div className="flex gap-4">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button 
                       onClick={() => handleDownload(outputUrl, `auralux-${selectedTemplateId}.png`)}
                       className="flex-1 bg-[#FFCE00] hover:bg-[#E5B800] text-gray-950 font-extrabold py-3.5 rounded-[12px] text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-amber-500/10"
                     >
                       <Download size={15} /> Download Image
+                    </button>
+                    <button 
+                      onClick={() => setLightboxImage(outputUrl)}
+                      className="flex-1 bg-white hover:bg-gray-50 border border-gray-200 text-gray-750 font-bold py-3.5 rounded-[12px] text-sm flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <Eye size={15} /> View Full Size
                     </button>
                     <button 
                       onClick={handleTryAgain}
@@ -767,7 +1011,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section 4 - Pricing */}
+      {!hidePricing && (
       <section id="pricing" className="py-24 px-6 md:px-12 bg-black/[0.01] border-t border-b border-gray-200/60 w-full relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-amber-500/[0.02] rounded-full blur-3xl pointer-events-none"></div>
         <div className="max-w-6xl mx-auto z-10 relative">
@@ -911,6 +1155,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Section 5 - FAQ */}
       <section id="faq" className="py-24 px-6 md:px-12 bg-white w-full relative">
@@ -952,6 +1197,45 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Limit Reached Modal */}
+      {showLimitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-[24px] max-w-md w-full p-8 border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setShowLimitModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-650 transition-colors p-1"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-amber-500/10 text-[#FFCE00] rounded-full flex items-center justify-center mb-6">
+                <Sparkles size={32} />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-3">Free Limit Reached</h3>
+              <p className="text-gray-500 text-sm leading-relaxed mb-8">
+                You have used your 3 free high-quality generations. WhatsApp us to get more images or unlock custom video reels and catalogues!
+              </p>
+              <div className="flex flex-col w-full gap-3">
+                <a
+                  href={whatsappLink || 'https://wa.me/918296608821'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-[#FFCE00] hover:bg-[#E5B800] text-gray-950 font-black py-4 rounded-xl text-center text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  Contact on WhatsApp
+                </a>
+                <button
+                  onClick={() => setShowLimitModal(false)}
+                  className="w-full bg-gray-50 hover:bg-gray-100 text-gray-650 font-bold py-3.5 rounded-xl text-center text-xs transition-all border border-gray-200"
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Section 6 - Footer */}
       <footer className="w-full py-10 px-6 md:px-12 bg-[#FAF9F6] border-t border-gray-200/60 mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs font-semibold text-gray-400 gap-4">
@@ -963,6 +1247,29 @@ export default function Home() {
         </div>
       </footer>
 
+      {/* Lightbox Modal for Original Size Image Preview */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button 
+            type="button"
+            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full transition-colors"
+            onClick={() => setLightboxImage(null)}
+          >
+            <X size={24} />
+          </button>
+          <div className="relative max-w-4xl max-h-[85vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
+            <img 
+              src={lightboxImage} 
+              alt="Original Template View" 
+              className="max-w-full max-h-[80vh] rounded-lg object-contain shadow-2xl border border-white/5"
+            />
+            <p className="text-gray-400 text-xs mt-3 font-semibold">Original Aspect Ratio & Sizing</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

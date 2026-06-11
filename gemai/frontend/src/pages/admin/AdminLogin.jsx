@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Sparkles, Lock, User, AlertCircle } from "lucide-react";
 import { adminApi } from "../../api/adminApi";
 
@@ -9,6 +9,8 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isExpired = searchParams.get("expired") === "true";
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -47,6 +49,13 @@ export default function AdminLogin() {
             Administrative Control Panel
           </p>
         </div>
+
+        {isExpired && !error && (
+          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 p-3.5 rounded-lg text-xs flex items-center gap-2.5 mb-6">
+            <AlertCircle className="h-4 w-4 shrink-0 animate-pulse" />
+            <span>Your session has expired. Please sign in again.</span>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3.5 rounded-lg text-xs flex items-center gap-2.5 mb-6">

@@ -13,7 +13,7 @@ export default function Step2Profile({ formData, setFormData }) {
     <div>
       <h3 className="mb-2" style={{color:'var(--accent-secondary)'}}>Tell us about yourself *</h3>
       <p className="mb-6" style={{fontSize:'0.9rem'}}>All fields are required</p>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem'}}>
+      <div className="onboarding-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem'}}>
         {inp('Full Name','name','Wazir Kazimi')}
         {inp('Current City','city','Bangalore')}
         {inp('Degree & College','education','B.Tech, IIT Bombay')}
@@ -22,8 +22,8 @@ export default function Step2Profile({ formData, setFormData }) {
           <label className="input-label">Currently Employed? *</label>
           <select className="input-field" value={p.employed||''} onChange={e=>set('employed',e.target.value)} required>
             <option value="">Select...</option>
-            <option>No – actively looking</option>
-            <option>Yes – open to opportunities</option>
+            <option>No - actively looking</option>
+            <option>Yes - open to opportunities</option>
             <option>Freelancing</option>
           </select>
         </div>

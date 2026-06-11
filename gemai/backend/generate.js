@@ -1,29 +1,52 @@
 const OpenAI = require("openai");
-const fs = require("fs");
-const path = require("path");
-const https = require("https");
-const os = require("os");
 const cloudinary = require("cloudinary").v2;
 const streamifier = require("streamifier");
 const sharp = require("sharp");
 
-// Helper to download a file from URL to local file path
-function downloadFile(url, dest) {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(dest);
-    https.get(url, (response) => {
-      if (response.statusCode !== 200) {
-        reject(new Error(`Failed to download file: ${response.statusCode}`));
-        return;
-      }
-      response.pipe(file);
-      file.on('finish', () => {
-        file.close(resolve);
-      });
-    }).on('error', (err) => {
-      fs.unlink(dest, () => reject(err));
-    });
-  });
+// Watermark composition using sharp
+async function applyWatermark(imageBuffer, text = "Made on AuraLux AI") {
+  try {
+    const metadata = await sharp(imageBuffer).metadata();
+    const width = metadata.width || 1024;
+    const height = metadata.height || 1024;
+
+    const fontSize = Math.max(12, Math.round(width * 0.025)) || 24;
+    const margin = 24; // Keep margin around 24px
+
+    const svgText = `
+      <svg width="${width}" height="${height}">
+        <style>
+          .w-shadow {
+            fill: rgba(0, 0, 0, 0.35);
+            font-family: sans-serif;
+            font-size: ${fontSize}px;
+            font-weight: bold;
+            text-anchor: end;
+          }
+          .w-text {
+            fill: rgba(255, 255, 255, 0.50);
+            font-family: sans-serif;
+            font-size: ${fontSize}px;
+            font-weight: bold;
+            text-anchor: end;
+          }
+        </style>
+        <text x="${width - margin + 1}" y="${height - margin + 1}" class="w-shadow">${text}</text>
+        <text x="${width - margin}" y="${height - margin}" class="w-text">${text}</text>
+      </svg>
+    `;
+
+    return await sharp(imageBuffer)
+      .composite([{
+        input: Buffer.from(svgText),
+        top: 0,
+        left: 0
+      }])
+      .toBuffer();
+  } catch (err) {
+    console.error("Failed to apply watermark:", err);
+    return imageBuffer;
+  }
 }
 
 // Upload buffer to Cloudinary
@@ -40,76 +63,190 @@ function uploadBufferToCloudinary(buffer) {
   });
 }
 
-// Main generation function using OpenAI Image Edit API
-async function generateImage(cloudinaryUrl, prompt, aspectRatio = "1:1") {
+// Main generation function using OpenAI Responses API & image_generation tool
+async function generateImage(cloudinaryUrl, templateOutputPreviewUrl, templatePrompt, aspectRatio = "1:1", watermark = true, presentationMode = "keep_original") {
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const tmpPath = path.join(os.tmpdir(), `input_${Date.now()}.png`);
-  
-  try {
-    // 1. Download image from Cloudinary into a temp file
-    await downloadFile(cloudinaryUrl, tmpPath);
+  const chatModel = process.env.OPENAI_CHAT_MODEL || "gpt-4o";
 
-    // 2. Call OpenAI edit API with a retry mechanism (maximum 1 retry on network failures)
-    const modelName = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1-mini";
-    let response;
-    let attempts = 0;
+  // Map aspect ratio to DALL-E 3 size parameter
+  let sizeParam = "1024x1024";
+  if (aspectRatio === "9:16") {
+    sizeParam = "1024x1792";
+  } else if (aspectRatio === "16:9") {
+    sizeParam = "1792x1024";
+  }
 
-    while (attempts < 2) {
-      try {
-        attempts++;
-        response = await openai.images.edit({
-          model: modelName,
-          image: fs.createReadStream(tmpPath),
-          prompt: prompt,
-          n: 1,
-          size: "1024x1024",
-          quality: "low",
-          response_format: "b64_json"
-        });
-        break; // Success, break out of loop
-      } catch (err) {
-        console.error(`OpenAI image generation attempt ${attempts} failed:`, err);
-        const isBillingOrQuota = err.status === 402 || err.status === 429 || (err.message && (err.message.includes('billing') || err.message.includes('rate limit') || err.message.includes('quota') || err.message.includes('insufficient_quota') || err.message.includes('limit_exceeded')));
-        
-        if (attempts >= 2 || isBillingOrQuota) {
-          throw err; // Re-throw the error, do not retry
-        }
-        console.log("Retrying OpenAI image generation due to network error...");
+  // Map presentation mode to prompt blocks
+  let presentationPrompt = "";
+  if (presentationMode === "keep_original") {
+    presentationPrompt = `The uploaded product category must remain the same.
+
+If the uploaded image is a loose gemstone, keep it as a loose gemstone.
+
+If the uploaded image is a ring, keep it as a ring.
+
+If the uploaded image is a pendant, keep it as a pendant.
+
+Do not convert a loose gemstone into a ring, pendant, necklace, earring, bracelet, or any jewellery setting.
+
+Do not add metal, prongs, halo diamonds, chain, band, or pendant loop unless they already exist in the uploaded product.
+
+Preserve the original product type.
+
+Only change the background, lighting, surface, camera quality, mood, and luxury styling.`;
+  } else if (presentationMode === "set_into_ring") {
+    presentationPrompt = `Use the uploaded gemstone as the main center stone and design a premium luxury ring around it.
+
+Preserve the gemstone color, shape, cut style, proportions, and visual identity as much as possible.
+
+Create a beautiful ring setting suitable for high-end jewellery advertising.
+
+It is allowed to add:
+* ring band
+* prongs
+* halo diamonds
+* pavé diamonds
+* luxury metal setting
+
+Do not change the gemstone into a different color or shape.
+
+The final output should be a luxury ring featuring the uploaded gemstone.`;
+  } else if (presentationMode === "set_into_pendant") {
+    presentationPrompt = `Use the uploaded gemstone as the main center stone and design a premium luxury pendant around it.
+
+Preserve the gemstone color, shape, cut style, proportions, and visual identity as much as possible.
+
+Create a beautiful pendant setting suitable for high-end jewellery advertising.
+
+It is allowed to add:
+* pendant bail
+* prongs
+* halo diamonds
+* decorative metal setting
+* chain if composition requires it
+
+Do not change the gemstone into a different color or shape.
+
+The final output should be a luxury pendant featuring the uploaded gemstone.`;
+  }
+
+  // Construct prompt rules matching the ChatGPT app experience
+  const masterPrompt = `IMAGE 1 is the customer's uploaded product reference.
+IMAGE 2 is the selected template style reference.
+
+Use IMAGE 1 for product identity.
+Use IMAGE 2 for visual style only.
+
+Do not copy the product from IMAGE 2.
+
+${presentationPrompt}
+
+${templatePrompt}
+
+Camera and composition rule:
+Follow the camera angle, crop, scale, framing, and composition of IMAGE 2 as closely as possible.
+
+If IMAGE 2 is a close-up macro photo, final output should also be a close-up macro photo.
+If IMAGE 2 is a flat lay, final output should also be a flat lay.
+If IMAGE 2 is a front-facing product shot, final output should also be front-facing.
+If IMAGE 2 shows the product centered and large, final output should also show the product centered and large.
+
+Do not change the camera angle randomly.
+Do not invent a different composition unless required by the selected presentation mode.
+
+Anti-Template Lock Instruction:
+Generate a new model, new hand position, new facial features, new pose, new composition, and new camera angle every time. The uploaded gemstone/product must remain identical to the source image while the surrounding human subject and scene are free to vary creatively.
+
+Final output:
+A single premium photorealistic luxury jewellery/gemstone advertising image.
+No text.
+No logo.
+No watermark except the app watermark added later by backend for free users.
+
+Final instruction:
+Generate one finished luxury jewellery product image using the image_generation tool with size "${sizeParam}". The uploaded product should be visually similar to IMAGE 1 and the style should be inspired by IMAGE 2.`;
+
+  let response;
+  let attempts = 0;
+
+  while (attempts < 2) {
+    try {
+      attempts++;
+      console.log(`Responses API (Attempt ${attempts}): Querying model ${chatModel} with image_generation tool...`);
+      
+      response = await openai.responses.create({
+        model: chatModel,
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: masterPrompt },
+              { type: "input_image", image_url: cloudinaryUrl },
+              { type: "input_image", image_url: templateOutputPreviewUrl }
+            ]
+          }
+        ],
+        tools: [{ type: "image_generation" }]
+      });
+      break; // Success, break out of loop
+    } catch (err) {
+      console.error(`Responses API image generation attempt ${attempts} failed:`, err);
+      const isBillingOrQuota = err.status === 402 || err.status === 429 || (err.message && (err.message.includes('billing') || err.message.includes('rate limit') || err.message.includes('quota') || err.message.includes('insufficient_quota') || err.message.includes('limit_exceeded')));
+      
+      if (attempts >= 2 || isBillingOrQuota) {
+        throw err;
       }
-    }
-
-    // 3. Get output base64 data
-    const base64 = response.data[0].b64_json;
-    if (!base64) {
-      throw new Error("No image data returned from OpenAI");
-    }
-    let outputBuffer = Buffer.from(base64, "base64");
-
-    // Crop the square output to matching aspect ratio if needed
-    if (aspectRatio === "9:16") {
-      outputBuffer = await sharp(outputBuffer)
-        .extract({ left: 224, top: 0, width: 576, height: 1024 })
-        .toBuffer();
-    } else if (aspectRatio === "16:9") {
-      outputBuffer = await sharp(outputBuffer)
-        .extract({ left: 0, top: 224, width: 1024, height: 576 })
-        .toBuffer();
-    }
-
-    // 4. Upload output to Cloudinary
-    const outputUrl = await uploadBufferToCloudinary(outputBuffer);
-
-    return outputUrl;
-  } finally {
-    // 5. Cleanup temp file
-    if (fs.existsSync(tmpPath)) {
-      try {
-        fs.unlinkSync(tmpPath);
-      } catch (err) {
-        console.error("Failed to delete temp file:", err);
-      }
+      console.log("Retrying Responses API image generation due to network error...");
     }
   }
+
+  // Extract the generated image from the response outputs
+  const imageGenerationOutputs = response.output ? response.output.filter(
+    (out) => out.type === "image_generation_call"
+  ) : [];
+
+  if (imageGenerationOutputs.length === 0) {
+    console.error("OpenAI Responses API did not trigger the image generation tool. Full response:", JSON.stringify(response));
+    throw new Error("No image data returned from OpenAI Responses API. Make sure the model supports tool calls.");
+  }
+
+  const base64Data = imageGenerationOutputs[0].result;
+  if (!base64Data) {
+    throw new Error("Empty image result returned from OpenAI Responses API");
+  }
+
+  console.log("Decoding base64 image data...");
+  const outputBuffer = Buffer.from(base64Data, "base64");
+
+  // Calculate estimated cost
+  let imageCost = 0.040;
+  if (aspectRatio === "9:16" || aspectRatio === "16:9") {
+    imageCost = 0.080;
+  }
+  const chatOverhead = 0.015; // Estimated Vision tokens cost
+  const totalCost = parseFloat((imageCost + chatOverhead).toFixed(4));
+
+  let processedBuffer = outputBuffer;
+  if (watermark) {
+    console.log("Applying watermark to free image generation output...");
+    processedBuffer = await applyWatermark(outputBuffer);
+  }
+
+  console.log("Uploading final image buffer to Cloudinary...");
+  const outputUrl = await uploadBufferToCloudinary(processedBuffer);
+
+  return {
+    outputUrl,
+    metadata: {
+      model: chatModel,
+      quality: "standard",
+      size: sizeParam,
+      inputImagesCount: 2,
+      estimatedCostUsd: totalCost,
+      isWatermarked: watermark
+    }
+  };
 }
+
 
 module.exports = generateImage;

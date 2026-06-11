@@ -40,9 +40,9 @@ const PrefRow = ({ icon: Icon, label, jd, candidate, match, note }) => (
         <span style={{ fontWeight:600, fontSize:'0.88rem' }}>{label}</span>
         <MatchBadge match={match} />
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.5rem', fontSize:'0.82rem', marginBottom:'0.35rem' }}>
-        <div><span style={{ color:'var(--text-secondary)' }}>JD: </span><span style={{ color:'var(--text-primary)' }}>{jd || '—'}</span></div>
-        <div><span style={{ color:'var(--text-secondary)' }}>You: </span><span style={{ color:'var(--text-primary)' }}>{candidate || '—'}</span></div>
+      <div className="pref-row-grid" style={{ display:'grid', gap:'0.5rem', fontSize:'0.82rem', marginBottom:'0.35rem' }}>
+        <div><span style={{ color:'var(--text-secondary)' }}>JD: </span><span style={{ color:'var(--text-primary)' }}>{jd || '-'}</span></div>
+        <div><span style={{ color:'var(--text-secondary)' }}>You: </span><span style={{ color:'var(--text-primary)' }}>{candidate || '-'}</span></div>
       </div>
       {note && <div style={{ fontSize:'0.8rem', color:'var(--text-secondary)', fontStyle:'italic' }}>{note}</div>}
     </div>
@@ -115,11 +115,11 @@ const Home = () => {
   const toggle = (s) => setOpenSection(o => o === s ? null : s);
   const Section = ({ id, title, children }) => (
     <div style={{ borderBottom:'1px solid var(--border-color)' }}>
-      <div style={{ padding:'1.25rem 2rem', display:'flex', justifyContent:'space-between', alignItems:'center', cursor:'pointer', userSelect:'none' }} onClick={() => toggle(id)}>
+      <div className="result-section-header" style={{ padding:'1.25rem 2rem', display:'flex', justifyContent:'space-between', alignItems:'center', cursor:'pointer', userSelect:'none' }} onClick={() => toggle(id)}>
         <span style={{ fontWeight:600, fontSize:'1rem' }}>{title}</span>
         {openSection === id ? <ChevronUp size={18} color="var(--text-secondary)"/> : <ChevronDown size={18} color="var(--text-secondary)"/>}
       </div>
-      {openSection === id && <div style={{ padding:'0.5rem 2rem 2rem' }}>{children}</div>}
+      {openSection === id && <div className="result-section-body" style={{ padding:'0.5rem 2rem 2rem' }}>{children}</div>}
     </div>
   );
 
@@ -148,7 +148,7 @@ const Home = () => {
 
         {/* No profile warning */}
         {!profile && (
-          <div style={{ background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.3)', borderRadius:'10px', padding:'1.25rem 1.5rem', marginBottom:'1.5rem', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div className="profile-warning-banner" style={{ background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.3)', borderRadius:'10px', padding:'1.25rem 1.5rem', marginBottom:'1.5rem', display:'flex', justifyContent:'space-between', alignItems:'center', gap:'1rem' }}>
             <div>
               <div style={{ fontWeight:600, color:'var(--warning)', marginBottom:'0.2rem' }}>⚠️ Profile not set up yet</div>
               <div style={{ fontSize:'0.85rem', color:'var(--text-secondary)' }}>Analysis works best with your full profile. Set it up to get personalized results.</div>
@@ -165,7 +165,7 @@ const Home = () => {
           <textarea
             value={jdText}
             onChange={e => setJdText(e.target.value)}
-            placeholder="Paste the full LinkedIn / job posting text here — the more detail the better..."
+            placeholder="Paste the full LinkedIn / job posting text here - the more detail the better..."
             className="input-field"
             style={{ minHeight:'180px', fontSize:'0.95rem', marginBottom:'1rem' }}
           />
@@ -298,7 +298,7 @@ const Home = () => {
 
               {/* Section: Pros & Flags */}
               <Section id="fit" title="✅ Strengths & ⚠️ Red Flags">
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.5rem' }}>
+                <div className="pros-flags-grid" style={{ display:'grid', gap:'1.5rem' }}>
                   <div>
                     <div style={{ fontSize:'0.78rem', fontWeight:700, color:'var(--success)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:'0.75rem' }}>What works in your favour</div>
                     {(result.pros||[]).map((p,i) => <div key={i} style={{ display:'flex', gap:'0.5rem', marginBottom:'0.5rem', fontSize:'0.88rem', color:'var(--text-secondary)', lineHeight:1.5 }}><span style={{ color:'var(--success)', flexShrink:0 }}>✓</span>{p}</div>)}
@@ -408,7 +408,7 @@ const Home = () => {
                     <div style={{ fontWeight:600, fontSize:'0.95rem', marginBottom:'1rem' }}>
                       Would you apply for this job?
                     </div>
-                    <div style={{ display:'flex', gap:'0.75rem', marginBottom:'1rem' }}>
+                    <div className="feedback-btns" style={{ display:'flex', gap:'0.75rem', marginBottom:'1rem' }}>
                       <button onClick={() => { setFeedback('yes'); setFeedbackReasons([]); }}
                         style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.6rem 1.25rem', borderRadius:'8px', border:`2px solid ${feedback==='yes'?'var(--success)':'var(--border-color)'}`, background: feedback==='yes'?'rgba(16,185,129,0.1)':'transparent', color: feedback==='yes'?'var(--success)':'var(--text-secondary)', cursor:'pointer', fontWeight:600, fontSize:'0.9rem', transition:'all 0.15s' }}>
                         <ThumbsUp size={16}/> Yes, I'd apply
@@ -455,6 +455,14 @@ const Home = () => {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }
 
+        /* Dashboard layout grids */
+        .pros-flags-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .pref-row-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
         /* Dashboard mobile fixes */
         @media (max-width: 640px) {
           /* Score header stacks */
@@ -491,6 +499,17 @@ const Home = () => {
           }
           .dash-header > div:last-child {
             text-align: left !important;
+          }
+
+          /* Profile warning banner collapses */
+          .profile-warning-banner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+          .profile-warning-banner > button {
+            width: 100% !important;
+            justify-content: center !important;
           }
         }
       `}</style>

@@ -6,18 +6,18 @@ import { useAuth } from '../context/AuthContext';
 import Logo from '../components/Logo';
 
 const STEPS = [
-  { num:'01', icon:User,       color:'#3b82f6', title:'Build your profile',       desc:'Upload your resume — our AI auto-fills your skills, experience, and education in seconds. Add your target roles, salary expectations, and deal-breakers.' },
-  { num:'02', icon:Search,     color:'#8b5cf6', title:'Paste any job description', desc:'Copy the full text of any LinkedIn, Naukri, Internshala, or company careers post and drop it in. No links needed — just the raw text.' },
-  { num:'03', icon:BarChart3,  color:'#10b981', title:'Get your instant analysis',  desc:'See your Fit Score (1–10), skills gap breakdown, salary comparison, culture check against your hard no\'s, and whether it\'s a dream company match.' },
-  { num:'04', icon:Mail,       color:'#f59e0b', title:'Apply with 1-click drafts',  desc:'Get a personalized cold email, LinkedIn DM, and Q&A answers — all written using YOUR specific metrics, projects, and personality. Not templates.' },
+  { num:'01', icon:User,       color:'#3b82f6', title:'Build your profile',       desc:'Upload your resume - our AI auto-fills your skills, experience, and education in seconds. Add your target roles, salary expectations, and deal-breakers.' },
+  { num:'02', icon:Search,     color:'#8b5cf6', title:'Paste any job description', desc:'Copy the full text of any LinkedIn, Naukri, Internshala, or company careers post and drop it in. No links needed - just the raw text.' },
+  { num:'03', icon:BarChart3,  color:'#10b981', title:'Get your instant analysis',  desc:'See your Fit Score (1-10), skills gap breakdown, salary comparison, culture check against your hard no\'s, and whether it\'s a dream company match.' },
+  { num:'04', icon:Mail,       color:'#f59e0b', title:'Apply with 1-click drafts',  desc:'Get a personalized cold email, LinkedIn DM, and Q&A answers - all written using YOUR specific metrics, projects, and personality. Not templates.' },
 ];
 
 const FEATURES = [
-  { icon:BarChart3,  color:'rgba(59,130,246,0.1)',   iconColor:'#3b82f6', title:'Fit Score',           desc:'Honest 1–10 score based on real skill and preference overlap — not inflated to make you feel good.' },
+  { icon:BarChart3,  color:'rgba(59,130,246,0.1)',   iconColor:'#3b82f6', title:'Fit Score',           desc:'Honest 1-10 score based on real skill and preference overlap - not inflated to make you feel good.' },
   { icon:ShieldCheck,color:'rgba(245,158,11,0.1)',   iconColor:'#f59e0b', title:'Spam Detector',       desc:'AI scans for vague JDs, fake internships, unpaid roles, and unrealistic requirements before you waste time.' },
-  { icon:Search,     color:'rgba(139,92,246,0.1)',   iconColor:'#8b5cf6', title:'Skills Gap Analysis', desc:'Colour-coded: Strong Match, Partial, Missing, and Bonus skills — so you know exactly what to highlight or learn.' },
-  { icon:Star,       color:'rgba(239,68,68,0.1)',    iconColor:'#ef4444', title:'Dream Company Match', desc:'Set your target companies in profile. We flag when a JD is from your wishlist — so you never miss your shot.' },
-  { icon:Mail,       color:'rgba(16,185,129,0.1)',   iconColor:'#10b981', title:'1-Click Drafts',      desc:'Cold email, LinkedIn DM, and application Q&A — all personalized using your actual achievements, not placeholders.' },
+  { icon:Search,     color:'rgba(139,92,246,0.1)',   iconColor:'#8b5cf6', title:'Skills Gap Analysis', desc:'Colour-coded: Strong Match, Partial, Missing, and Bonus skills - so you know exactly what to highlight or learn.' },
+  { icon:Star,       color:'rgba(239,68,68,0.1)',    iconColor:'#ef4444', title:'Dream Company Match', desc:'Set your target companies in profile. We flag when a JD is from your wishlist - so you never miss your shot.' },
+  { icon:Mail,       color:'rgba(16,185,129,0.1)',   iconColor:'#10b981', title:'1-Click Drafts',      desc:'Cold email, LinkedIn DM, and application Q&A - all personalized using your actual achievements, not placeholders.' },
   { icon:MessageSquare,color:'rgba(99,102,241,0.1)',iconColor:'#6366f1', title:'Feedback Loop',       desc:'Tell us if you\'d apply and why. JobLens learns your preferences over time to give sharper results with every analysis.' },
 ];
 
@@ -28,16 +28,15 @@ const Landing = () => {
 
   return (
     <div style={{ width:'100%', minHeight:'100vh', display:'flex', flexDirection:'column', fontFamily:'Inter,system-ui,sans-serif' }}>
-
       {/* Navbar */}
-      <nav style={{ padding:'1.25rem 3rem', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid var(--border-color)', position:'sticky', top:0, backdropFilter:'blur(12px)', zIndex:100 }}>
+      <nav className="landing-nav" style={{ padding:'1.25rem 3rem', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid var(--border-color)', position:'sticky', top:0, backdropFilter:'blur(12px)', zIndex:100 }}>
         <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
         <Logo size={32} textSize="1.3rem" />
         </div>
-        <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
+        <div className="landing-nav-btns" style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
           {!user ? (
             <>
-              <button className="btn btn-secondary" style={{ padding:'0.55rem 1.25rem', fontSize:'0.9rem' }} onClick={() => navigate('/auth')}>Log In</button>
+              <button className="btn btn-secondary btn-secondary-nav" style={{ padding:'0.55rem 1.25rem', fontSize:'0.9rem' }} onClick={() => navigate('/auth')}>Log In</button>
               <button className="btn btn-primary"   style={{ padding:'0.55rem 1.25rem', fontSize:'0.9rem' }} onClick={() => navigate('/auth')}>Sign Up Free <ArrowRight size={15}/></button>
             </>
           ) : (
@@ -49,7 +48,7 @@ const Landing = () => {
       </nav>
 
       {/* Hero */}
-      <section style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', padding:'5rem 2rem 3rem' }}>
+      <section className="landing-hero" style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', padding:'5rem 2rem 3rem' }}>
         <motion.div initial={{ opacity:0, y:30 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.6 }} style={{ maxWidth:'820px' }}>
           <div style={{ display:'inline-flex', alignItems:'center', gap:'0.5rem', padding:'0.4rem 1rem', borderRadius:'9999px', background:'rgba(59,130,246,0.1)', border:'1px solid rgba(59,130,246,0.25)', color:'var(--accent-primary)', fontSize:'0.85rem', fontWeight:600, marginBottom:'1.75rem' }}>
             🚀 AI Career Advisor for Freshers & Early-Career Professionals
@@ -58,11 +57,11 @@ const Landing = () => {
             Stop guessing.<br/>Start <span style={{ color:'var(--accent-primary)' }}>landing interviews.</span>
           </h1>
           <p style={{ fontSize:'1.15rem', color:'var(--text-secondary)', maxWidth:'600px', margin:'0 auto 2.5rem', lineHeight:1.7 }}>
-            Paste any job description → get a personalized fit score, skills gap breakdown, salary check, and a cold email that actually sounds like you — in under 10 seconds.
+            Paste any job description → get a personalized fit score, skills gap breakdown, salary check, and a cold email that actually sounds like you - in under 10 seconds.
           </p>
           <div style={{ display:'flex', gap:'1rem', justifyContent:'center', flexWrap:'wrap' }}>
             <button className="btn btn-primary" style={{ fontSize:'1.05rem', padding:'0.9rem 2.25rem', borderRadius:'50px' }} onClick={() => navigate(destination)}>
-              {user && profile ? 'Open Dashboard' : 'Start Free — No Credit Card'} <ArrowRight size={18}/>
+              {user && profile ? 'Open Dashboard' : 'Start Free - No Credit Card'} <ArrowRight size={18}/>
             </button>
             {!user && (
               <button className="btn btn-secondary" style={{ fontSize:'1.05rem', padding:'0.9rem 2.25rem', borderRadius:'50px' }} onClick={() => navigate('/auth')}>
@@ -77,13 +76,13 @@ const Landing = () => {
       </section>
 
       {/* How it works */}
-      <section style={{ padding:'5rem 2rem', maxWidth:'1100px', margin:'0 auto', width:'100%' }}>
+      <section className="landing-section" style={{ padding:'5rem 2rem', maxWidth:'1100px', margin:'0 auto', width:'100%' }}>
         <motion.div initial={{ opacity:0, y:30 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:0.5 }}>
           <div style={{ textAlign:'center', marginBottom:'3.5rem' }}>
             <h2 style={{ fontSize:'2rem', fontWeight:800, marginBottom:'0.75rem' }}>How it works</h2>
             <p style={{ color:'var(--text-secondary)', fontSize:'1rem' }}>From zero to a personalized cold email in 4 steps</p>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:'1.5rem' }}>
+          <div className="landing-grid-4" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:'1.5rem' }}>
             {STEPS.map((s, i) => (
               <motion.div key={i} initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ delay:i*0.1 }}
                 className="glass-panel" style={{ padding:'2rem', position:'relative', overflow:'hidden' }}>
@@ -100,13 +99,13 @@ const Landing = () => {
       </section>
 
       {/* Features */}
-      <section style={{ padding:'3rem 2rem 5rem', maxWidth:'1100px', margin:'0 auto', width:'100%' }}>
+      <section className="landing-section" style={{ padding:'3rem 2rem 5rem', maxWidth:'1100px', margin:'0 auto', width:'100%' }}>
         <motion.div initial={{ opacity:0, y:30 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:0.5 }}>
           <div style={{ textAlign:'center', marginBottom:'3rem' }}>
             <h2 style={{ fontSize:'2rem', fontWeight:800, marginBottom:'0.75rem' }}>Everything you need to apply smarter</h2>
-            <p style={{ color:'var(--text-secondary)', fontSize:'1rem' }}>Not just a score — a full decision-making toolkit</p>
+            <p style={{ color:'var(--text-secondary)', fontSize:'1rem' }}>Not just a score - a full decision-making toolkit</p>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:'1.25rem' }}>
+          <div className="landing-grid-6" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:'1.25rem' }}>
             {FEATURES.map((f, i) => (
               <motion.div key={i} initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ delay:i*0.08 }}
                 className="glass-panel" style={{ padding:'1.75rem', display:'flex', gap:'1rem', alignItems:'flex-start' }}>
@@ -124,14 +123,14 @@ const Landing = () => {
       </section>
 
       {/* CTA Bottom */}
-      <section style={{ padding:'4rem 2rem', textAlign:'center', borderTop:'1px solid var(--border-color)' }}>
+      <section className="landing-cta" style={{ padding:'4rem 2rem', textAlign:'center', borderTop:'1px solid var(--border-color)' }}>
         <motion.div initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }}>
           <h2 style={{ fontSize:'2rem', fontWeight:800, marginBottom:'1rem' }}>Ready to stop guessing?</h2>
           <p style={{ color:'var(--text-secondary)', marginBottom:'2rem', fontSize:'1rem' }}>Build your profile once. Analyze any job in seconds.</p>
           <button className="btn btn-primary" style={{ fontSize:'1.1rem', padding:'0.95rem 2.5rem', borderRadius:'50px' }} onClick={() => navigate(destination)}>
             Get Started Free <ArrowRight size={18}/>
           </button>
-          <div style={{ display:'flex', justifyContent:'center', gap:'2rem', marginTop:'1.5rem', flexWrap:'wrap' }}>
+          <div className="landing-trust" style={{ display:'flex', justifyContent:'center', gap:'2rem', marginTop:'1.5rem', flexWrap:'wrap' }}>
             {['✓ Free forever','✓ No credit card','✓ Works on any job post','✓ Resume auto-fill'].map(t => (
               <span key={t} style={{ fontSize:'0.82rem', color:'var(--text-secondary)' }}>{t}</span>
             ))}
@@ -140,9 +139,9 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer style={{ padding:'1.5rem 1.5rem', borderTop:'1px solid var(--border-color)', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'0.5rem' }}>
+      <footer className="landing-footer" style={{ padding:'1.5rem 1.5rem', borderTop:'1px solid var(--border-color)', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'0.5rem' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', fontSize:'0.85rem', color:'var(--text-secondary)' }}>
-        <Logo size={18} showText={false} />  JobLens — Built for freshers
+        <Logo size={18} showText={false} />  JobLens - Built for freshers
         </div>
         <div style={{ fontSize:'0.8rem', color:'var(--text-secondary)', opacity:0.6 }}>
           © {new Date().getFullYear()} JobLens. All rights reserved.

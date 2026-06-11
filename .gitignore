@@ -30,3 +30,7 @@ backend/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Dynamically generated es-toolkit compat wrappers
+/src/lib/es-toolkit-compat/
+
