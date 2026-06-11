@@ -16,6 +16,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminAnalyses from './pages/admin/AdminAnalyses';
 import AdminFeedback from './pages/admin/AdminFeedback';
+import AdminAnalytics from './pages/admin/AdminAnalytics';
 import AdminSystem from './pages/admin/AdminSystem';
 
 const Spinner = () => (
@@ -117,6 +118,7 @@ function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="analyses" element={<AdminAnalyses />} />
             <Route path="feedback" element={<AdminFeedback />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="system" element={<AdminSystem />} />
           </Route>
 

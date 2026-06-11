@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, LineChart, MessageSquare, Settings, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, LineChart, MessageSquare, Settings, LogOut, Menu, X, BarChart3 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Logo from '../../components/Logo';
 import './admin.css';
@@ -133,6 +133,7 @@ export default function AdminLayout() {
     { path: '/admin/users', label: 'Users', icon: Users },
     { path: '/admin/analyses', label: 'Analyses', icon: LineChart },
     { path: '/admin/feedback', label: 'Feedback', icon: MessageSquare },
+    { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
     { path: '/admin/system', label: 'System', icon: Settings },
   ];
 
