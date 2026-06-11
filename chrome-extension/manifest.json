@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "JobLens - AI Job Analyzer",
+  "version": "1.0",
+  "description": "Get instant fit scores, skills gap analysis, and tailored cold email drafts for any job post with one click.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "host_permissions": [
+    "http://localhost:5000/*",
+    "https://joblen.vercel.app/*"
+  ]
+}

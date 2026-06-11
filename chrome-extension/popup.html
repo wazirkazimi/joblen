@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>JobLens - AI Job Analyzer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <svg class="app-logo" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+        <span class="logo-text">JobLens</span>
+      </div>
+      <div class="sync-status" id="sync-status">
+        <span class="status-dot red"></span>
+        <span class="status-text">Disconnected</span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <!-- 1. Sync Profile View (Shown when not authenticated/synced) -->
+      <div id="view-sync" class="view">
+        <div class="hero-icon-container">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--accent-secondary)" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="8.5" cy="7" r="4"/>
+            <polyline points="17 11 19 13 23 9"/>
+          </svg>
+        </div>
+        <h2>Connect Your Profile</h2>
+        <p class="view-description">
+          JobLens matches job descriptions against your actual skills, experience, and preferences. Open the web app to connect.
+        </p>
+        <button id="btn-open-web" class="btn btn-primary">
+          Open JobLens & Sync Account
+        </button>
+        <div class="alternative-sync">
+          <p>Or configure manually:</p>
+          <input type="text" id="api-url" placeholder="API Server (http://localhost:5000)" value="http://localhost:5000" class="input-field">
+        </div>
+      </div>
+
+      <!-- 2. Scrape & Prepare View (Profile is synced, ready to analyze) -->
+      <div id="view-ready" class="view hidden">
+        <div class="profile-card glass-panel">
+          <div class="profile-info">
+            <span class="profile-name" id="user-display-name">Loading Profile...</span>
+            <span class="profile-sub" id="user-display-details">IIT Bombay · Frontend</span>
+          </div>
+          <button id="btn-resync" class="btn-icon-link" title="Re-sync Profile">
+            Sync ⟳
+          </button>
+        </div>
+
+        <div class="jd-section">
+          <h3>Detected Job Details</h3>
+          <div class="job-detected-card">
+            <div id="job-role" class="job-title">React Developer</div>
+            <div id="job-company" class="job-company">Google Inc.</div>
+          </div>
+
+          <textarea id="manual-jd" class="input-field" placeholder="Scraped JD will appear here... paste description text manually if needed."></textarea>
+        </div>
+
+        <button id="btn-analyze" class="btn btn-primary w-full">
+          Analyze Fit Score
+        </button>
+      </div>
+
+      <!-- 3. Loading View -->
+      <div id="view-loading" class="view hidden">
+        <div class="loader-container">
+          <div class="loader-ring"></div>
+          <div class="loader-ring-inner"></div>
+        </div>
+        <h3 id="loader-title">Reading Job Post...</h3>
+        <p class="loader-sub">Extracting details and comparing skills gap...</p>
+      </div>
+
+      <!-- 4. Analysis Results View -->
+      <div id="view-results" class="view hidden">
+        <!-- Result Header -->
+        <div class="result-score-panel">
+          <div class="score-circle-container">
+            <div class="score-gauge">
+              <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle" id="score-gauge-fill" stroke-dasharray="80, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+              <div class="score-text" id="result-score">8</div>
+            </div>
+            <span class="score-denominator">/ 10</span>
+          </div>
+
+          <div class="result-verdict">
+            <span class="badge" id="result-probability">High Fit</span>
+            <div class="result-comp" id="result-comp-name">Google</div>
+          </div>
+        </div>
+
+        <!-- Scrollable details container -->
+        <div class="results-scrollable">
+          <!-- Summary sentence -->
+          <p id="result-summary" class="result-reason-text">This role matches your backend skills well, but has gaps in system design.</p>
+
+          <!-- Tab Bar for switching result panels -->
+          <div class="tab-bar">
+            <button class="tab-btn active" data-target="panel-fit">Fit Analysis</button>
+            <button class="tab-btn" data-target="panel-skills">Skills Gap</button>
+            <button class="tab-btn" data-target="panel-drafts">AI Drafts</button>
+          </div>
+
+          <!-- Tab Content 1: Fit & Preferences -->
+          <div id="panel-fit" class="tab-panel active">
+            <!-- Strengths and concerns -->
+            <div class="fit-grid">
+              <div class="fit-card green">
+                <h5>✓ Key Strengths</h5>
+                <ul id="list-pros" class="fit-list">
+                  <li>Strong TypeScript match</li>
+                </ul>
+              </div>
+              <div class="fit-card red">
+                <h5>⚠️ Red Flags / Gaps</h5>
+                <ul id="list-flags" class="fit-list">
+                  <li>No prior AWS listed</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Preferences checklist -->
+            <div class="pref-checklist glass-panel">
+              <h4>Preference Checklist</h4>
+              <div class="pref-item" id="pref-salary">
+                <span class="pref-icon">●</span>
+                <div class="pref-details">
+                  <span class="pref-label">Salary Match</span>
+                  <span class="pref-val" id="pref-salary-val">Unclear ($10k vs ₹8L)</span>
+                </div>
+              </div>
+              <div class="pref-item" id="pref-location">
+                <span class="pref-icon">●</span>
+                <div class="pref-details">
+                  <span class="pref-label">Location Match</span>
+                  <span class="pref-val" id="pref-location-val">Yes (Remote)</span>
+                </div>
+              </div>
+              <div class="pref-item" id="pref-culture">
+                <span class="pref-icon">●</span>
+                <div class="pref-details">
+                  <span class="pref-label">Culture Red Flag</span>
+                  <span class="pref-val" id="pref-culture-val">No conflicts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content 2: Skills Gap -->
+          <div id="panel-skills" class="tab-panel">
+            <div class="skills-block">
+              <h5>Strong Matches</h5>
+              <div id="skills-strong" class="chip-container">
+                <span class="chip green">React</span>
+              </div>
+            </div>
+            <div class="skills-block">
+              <h5>Missing Requirements</h5>
+              <div id="skills-missing" class="chip-container">
+                <span class="chip red">Docker</span>
+              </div>
+            </div>
+            <div class="skills-block">
+              <h5>Bonus/Nice-to-Have</h5>
+              <div id="skills-bonus" class="chip-container">
+                <span class="chip purple">Tailwind</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content 3: Cold Drafts -->
+          <div id="panel-drafts" class="tab-panel">
+            <div class="draft-selector">
+              <button class="draft-btn active" data-draft="draft-email">Cold Email</button>
+              <button class="draft-btn" data-draft="draft-dm">LinkedIn DM</button>
+            </div>
+            <div class="draft-container">
+              <pre id="draft-text" class="draft-viewer">Subject: Ready to contribute...</pre>
+              <button id="btn-copy-draft" class="btn btn-secondary w-full" style="margin-top:0.75rem;">
+                Copy Draft
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reset Button -->
+        <button id="btn-back" class="btn btn-secondary w-full" style="margin-top: 1rem;">
+          Analyze Another Job
+        </button>
+      </div>
+    </main>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
