@@ -19,7 +19,9 @@
     }
   ],
   "host_permissions": [
-    "http://localhost:5000/*",
-    "https://joblen.vercel.app/*"
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "https://joblen.vercel.app/*",
+    "https://soyrrlmvypbreobhwtez.supabase.co/*"
   ]
 }

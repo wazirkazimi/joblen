@@ -2,26 +2,29 @@
 console.log("JobLens Content Script Active");
 
 // Listen for messages from popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "GET_JOB_DESCRIPTION") {
-    const scrapedData = getJobDetails();
-    sendResponse(scrapedData);
-  } else if (request.action === "GET_JOBLENS_SESSION") {
-    // If the user is on the JobLens site, read the supabase auth token from localStorage
-    const sessionKey = Object.keys(localStorage).find(key => key.startsWith("sb-") && key.endsWith("-auth-token"));
-    if (sessionKey) {
-      try {
-        const sessionData = JSON.parse(localStorage.getItem(sessionKey));
-        sendResponse({ success: true, session: sessionData });
-      } catch (err) {
-        sendResponse({ success: false, error: "Failed to parse session" });
+if (!window.__joblensContentScriptInjected) {
+  window.__joblensContentScriptInjected = true;
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "GET_JOB_DESCRIPTION") {
+      const scrapedData = getJobDetails();
+      sendResponse(scrapedData);
+    } else if (request.action === "GET_JOBLENS_SESSION") {
+      // If the user is on the JobLens site, read the supabase auth token from localStorage
+      const sessionKey = Object.keys(localStorage).find(key => key.startsWith("sb-") && key.endsWith("-auth-token"));
+      if (sessionKey) {
+        try {
+          const sessionData = JSON.parse(localStorage.getItem(sessionKey));
+          sendResponse({ success: true, session: sessionData });
+        } catch (err) {
+          sendResponse({ success: false, error: "Failed to parse session" });
+        }
+      } else {
+        sendResponse({ success: false, error: "Not on JobLens or not logged in" });
       }
-    } else {
-      sendResponse({ success: false, error: "Not on JobLens or not logged in" });
     }
-  }
-  return true; // Keep message channel open for async response
-});
+    return true; // Keep message channel open for async response
+  });
+}
 
 // Helper to scrape job posting text
 function getJobDetails() {

@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Attempt to scan ALL tabs to auto-sync from any background JobLens website tab if not explicitly disconnected
       if (!result.disconnected) {
         chrome.tabs.query({}, (allTabs) => {
-          const joblensTab = allTabs.find(t => t.url && (t.url.includes("localhost:517") || t.url.includes("joblen.vercel.app")));
+          const joblensTab = allTabs.find(isJobLensTab);
           if (joblensTab) {
             trySyncFromTab(joblensTab);
           }
@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnOpenWeb.addEventListener("click", () => {
     chrome.storage.local.set({ disconnected: false }, () => {
       chrome.tabs.query({}, (allTabs) => {
-        const joblensTab = allTabs.find(t => t.url && (t.url.includes("localhost:517") || t.url.includes("joblen.vercel.app")));
+        const joblensTab = allTabs.find(isJobLensTab);
         if (joblensTab) {
           trySyncFromTab(joblensTab, true);
         } else {
@@ -217,7 +217,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   btnResync.addEventListener("click", () => {
     chrome.tabs.query({}, (allTabs) => {
-      const joblensTab = allTabs.find(t => t.url && (t.url.includes("localhost:517") || t.url.includes("joblen.vercel.app")));
+      const joblensTab = allTabs.find(isJobLensTab);
       if (joblensTab) {
         trySyncFromTab(joblensTab, true);
       } else {
@@ -302,10 +302,54 @@ function updateProfileDisplay(profile) {
   userDisplayDetails.innerText = [edu, city].filter(Boolean).join(" · ");
 }
 
+// Check if a tab is a JobLens tab
+function isJobLensTab(tab) {
+  if (!tab || !tab.url) return false;
+  const url = tab.url.toLowerCase();
+  return url.includes("localhost") || 
+         url.includes("127.0.0.1") || 
+         url.includes("joblen.vercel.app") || 
+         url.includes("joblens");
+}
+
+// Send message to tab, automatically injecting content.js if connection fails
+function sendMessageWithRetry(tab, message, callback) {
+  chrome.tabs.sendMessage(tab.id, message, (response) => {
+    if (chrome.runtime.lastError) {
+      console.log("Connection failed, attempting to inject content.js:", chrome.runtime.lastError.message);
+      
+      // Inject content.js programmatically
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["content.js"]
+      }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("Failed to inject content.js:", chrome.runtime.lastError.message);
+          callback(null);
+          return;
+        }
+        
+        // Wait 100ms and try sending the message again
+        setTimeout(() => {
+          chrome.tabs.sendMessage(tab.id, message, (retryResponse) => {
+            if (chrome.runtime.lastError) {
+              callback(null);
+            } else {
+              callback(retryResponse);
+            }
+          });
+        }, 100);
+      });
+    } else {
+      callback(response);
+    }
+  });
+}
+
 // Scrape job description
 function scrapeJobFromTab(tab) {
-  chrome.tabs.sendMessage(tab.id, { action: "GET_JOB_DESCRIPTION" }, (response) => {
-    if (chrome.runtime.lastError || !response) {
+  sendMessageWithRetry(tab, { action: "GET_JOB_DESCRIPTION" }, (response) => {
+    if (!response) {
       console.warn("Failed to scrape, content script not active or load delay.");
       return;
     }
@@ -319,8 +363,8 @@ function scrapeJobFromTab(tab) {
 
 // Attempt profile sync
 async function trySyncFromTab(tab, manualClick = false) {
-  chrome.tabs.sendMessage(tab.id, { action: "GET_JOBLENS_SESSION" }, async (response) => {
-    if (chrome.runtime.lastError || !response || !response.success) {
+  sendMessageWithRetry(tab, { action: "GET_JOBLENS_SESSION" }, async (response) => {
+    if (!response || !response.success) {
       if (manualClick) {
         alert("Failed to find active login session on the JobLens tab. Navigating tab to dashboard/login...");
         let targetUrl = "https://joblen.vercel.app/dashboard";
