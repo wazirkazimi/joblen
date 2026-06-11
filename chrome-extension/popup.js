@@ -16,6 +16,7 @@ const inputResumeFile = document.getElementById("input-resume-file");
 const btnUseDefault = document.getElementById("btn-use-default");
 
 const btnResync = document.getElementById("btn-resync");
+const btnDisconnect = document.getElementById("btn-disconnect");
 const btnAnalyze = document.getElementById("btn-analyze");
 const btnBack = document.getElementById("btn-back");
 const btnCopyDraft = document.getElementById("btn-copy-draft");
@@ -47,7 +48,7 @@ let activeTabDraft = "draft-email";
 // Init popup
 document.addEventListener("DOMContentLoaded", async () => {
   // Load cached profile
-  chrome.storage.local.get(["userProfile", "apiUrl"], (result) => {
+  chrome.storage.local.get(["userProfile", "apiUrl", "disconnected"], (result) => {
     if (result.userProfile) {
       cachedProfile = result.userProfile;
       updateSyncStatus(true);
@@ -56,17 +57,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       updateSyncStatus(false);
       showView(viewSync);
+
+      // Attempt to scan ALL tabs to auto-sync from any background JobLens website tab if not explicitly disconnected
+      if (!result.disconnected) {
+        chrome.tabs.query({}, (allTabs) => {
+          const joblensTab = allTabs.find(t => t.url && (t.url.includes("localhost:517") || t.url.includes("joblen.vercel.app")));
+          if (joblensTab) {
+            trySyncFromTab(joblensTab);
+          }
+        });
+      }
     }
     if (result.apiUrl) {
       apiUrlInput.value = result.apiUrl;
-    }
-  });
-
-  // Attempt to scan ALL tabs to auto-sync from any background JobLens website tab
-  chrome.tabs.query({}, (allTabs) => {
-    const joblensTab = allTabs.find(t => t.url && (t.url.includes("localhost:517") || t.url.includes("joblen.vercel.app")));
-    if (joblensTab) {
-      trySyncFromTab(joblensTab);
     }
   });
 
@@ -84,7 +87,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Event Listeners
   btnOpenWeb.addEventListener("click", () => {
-    chrome.tabs.create({ url: "https://joblen.vercel.app/dashboard" });
+    chrome.storage.local.set({ disconnected: false }, () => {
+      chrome.tabs.query({}, (allTabs) => {
+        const joblensTab = allTabs.find(t => t.url && (t.url.includes("localhost:517") || t.url.includes("joblen.vercel.app")));
+        if (joblensTab) {
+          trySyncFromTab(joblensTab, true);
+        } else {
+          chrome.tabs.create({ url: "https://joblen.vercel.app/dashboard" });
+        }
+      });
+    });
   });
 
   // Direct Resume PDF upload handler
@@ -97,7 +109,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!file) return;
 
     const serverUrl = apiUrlInput.value.trim() || "http://localhost:5000";
-    chrome.storage.local.set({ apiUrl: serverUrl });
+    chrome.storage.local.set({ apiUrl: serverUrl, disconnected: false });
 
     loaderTitle.innerText = "Parsing Resume PDF...";
     showView(viewLoading);
@@ -190,7 +202,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     cachedProfile = demoProfile;
-    chrome.storage.local.set({ userProfile: cachedProfile });
+    chrome.storage.local.set({ userProfile: cachedProfile, disconnected: false });
     updateSyncStatus(true);
     updateProfileDisplay(cachedProfile);
     showView(viewReady);
@@ -204,13 +216,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   btnResync.addEventListener("click", () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const activeTab = tabs[0];
-      if (activeTab) {
-        trySyncFromTab(activeTab, true);
+    chrome.tabs.query({}, (allTabs) => {
+      const joblensTab = allTabs.find(t => t.url && (t.url.includes("localhost:517") || t.url.includes("joblen.vercel.app")));
+      if (joblensTab) {
+        trySyncFromTab(joblensTab, true);
       } else {
         alert("Please navigate to your logged-in JobLens page to sync profile.");
       }
+    });
+  });
+
+  btnDisconnect.addEventListener("click", () => {
+    chrome.storage.local.set({ disconnected: true }, () => {
+      chrome.storage.local.remove("userProfile", () => {
+        cachedProfile = null;
+        updateSyncStatus(false);
+        showView(viewSync);
+      });
     });
   });
 
@@ -300,7 +322,16 @@ async function trySyncFromTab(tab, manualClick = false) {
   chrome.tabs.sendMessage(tab.id, { action: "GET_JOBLENS_SESSION" }, async (response) => {
     if (chrome.runtime.lastError || !response || !response.success) {
       if (manualClick) {
-        alert("Failed to find session on current tab. Make sure you are logged in to the JobLens web app.");
+        alert("Failed to find active login session on the JobLens tab. Navigating tab to dashboard/login...");
+        let targetUrl = "https://joblen.vercel.app/dashboard";
+        try {
+          const tabUrlObj = new URL(tab.url);
+          targetUrl = `${tabUrlObj.origin}/dashboard`;
+        } catch (e) {
+          console.error(e);
+        }
+        chrome.tabs.update(tab.id, { url: targetUrl, active: true });
+        chrome.windows.update(tab.windowId, { focused: true });
       }
       return;
     }
@@ -309,7 +340,21 @@ async function trySyncFromTab(tab, manualClick = false) {
     const accessToken = session?.access_token;
     const userId = session?.user?.id;
 
-    if (!accessToken || !userId) return;
+    if (!accessToken || !userId) {
+      if (manualClick) {
+        alert("No login session found on the JobLens tab. Navigating tab to dashboard/login...");
+        let targetUrl = "https://joblen.vercel.app/dashboard";
+        try {
+          const tabUrlObj = new URL(tab.url);
+          targetUrl = `${tabUrlObj.origin}/dashboard`;
+        } catch (e) {
+          console.error(e);
+        }
+        chrome.tabs.update(tab.id, { url: targetUrl, active: true });
+        chrome.windows.update(tab.windowId, { focused: true });
+      }
+      return;
+    }
 
     try {
       // Direct REST API fetch to Supabase using access token
@@ -327,11 +372,18 @@ async function trySyncFromTab(tab, manualClick = false) {
         updateSyncStatus(true);
         updateProfileDisplay(cachedProfile);
         
-        if (manualClick) {
-          alert("Profile Synced Successfully!");
+        // Transition to ready view if we are on viewSync
+        const isSyncViewVisible = viewSync.style.display !== "none" && !viewSync.classList.contains("hidden");
+        if (manualClick || isSyncViewVisible) {
           showView(viewReady);
           scrapeJobFromTab(tab);
         }
+        
+        if (manualClick) {
+          alert("Profile Synced Successfully!");
+        }
+      } else {
+        throw new Error("No profile data found in database.");
       }
     } catch (err) {
       console.error("Fetch profile failed:", err);

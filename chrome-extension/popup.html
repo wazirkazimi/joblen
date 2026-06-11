@@ -38,7 +38,7 @@
         </p>
         
         <button id="btn-open-web" class="btn btn-primary w-full" style="margin-bottom: 0.75rem;">
-          Open JobLens & Sync Account
+          Sync Web Account
         </button>
 
         <div style="text-align: center; margin: 0.5rem 0; font-size: 0.75rem; color: var(--text-secondary); font-weight: 600;">
@@ -66,9 +66,14 @@
             <span class="profile-name" id="user-display-name">Loading Profile...</span>
             <span class="profile-sub" id="user-display-details">IIT Bombay · Frontend</span>
           </div>
-          <button id="btn-resync" class="btn-icon-link" title="Re-sync Profile">
-            Sync ⟳
-          </button>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button id="btn-resync" class="btn-icon-link" title="Re-sync Profile" style="font-size: 1.1rem; padding: 0.15rem 0.4rem;">
+              ⟳
+            </button>
+            <button id="btn-disconnect" class="btn-icon-link" title="Disconnect & Go Back" style="color: var(--danger);">
+              Disconnect
+            </button>
+          </div>
         </div>
 
         <div class="jd-section">
