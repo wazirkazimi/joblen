@@ -1,6 +1,6 @@
 // JobLens Chrome Extension - popup.js
 
-const SUPABASE_URL = "https://soyrrlmvypbreobhwtez.supabase.co";
+const SUPABASE_URL = "https://soyrlmvypbreobohwtez.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNveXJsbXZ5cGJyZW9ib2h3dGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyNDc0MDQsImV4cCI6MjA5MzgyMzQwNH0.g_MYRi7eNywGv1x5AtULNV-brTweIrYiGDvq54d0PLw";
 
 // DOM Elements
@@ -129,6 +129,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const parsedData = await res.json();
       
+      let skillsArray = [];
+      if (parsedData.skills) {
+        if (Array.isArray(parsedData.skills)) {
+          skillsArray = parsedData.skills.map(s => String(s).trim()).filter(Boolean);
+        } else if (typeof parsedData.skills === "string") {
+          skillsArray = parsedData.skills.split(",").map(s => s.trim()).filter(Boolean);
+        } else {
+          skillsArray = [String(parsedData.skills).trim()];
+        }
+      }
+
+      let toolsArray = [];
+      if (parsedData.tools) {
+        if (Array.isArray(parsedData.tools)) {
+          toolsArray = parsedData.tools.map(t => String(t).trim()).filter(Boolean);
+        } else if (typeof parsedData.tools === "string") {
+          toolsArray = parsedData.tools.split(",").map(t => t.trim()).filter(Boolean);
+        } else {
+          toolsArray = [String(parsedData.tools).trim()];
+        }
+      }
+
       // Map parsed fields into unified userProfile schema
       const profile = {
         profile: {
@@ -139,8 +161,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           employed: "No - actively looking"
         },
         experiences: parsedData.experiences || [],
-        selectedSkills: (parsedData.skills || "").split(",").map(s => s.trim()).filter(Boolean),
-        selectedTools: (parsedData.tools || "").split(",").map(t => t.trim()).filter(Boolean),
+        selectedSkills: skillsArray,
+        selectedTools: toolsArray,
         selectedAiTools: [],
         links: {
           resumeText: parsedData.rawText || ""
